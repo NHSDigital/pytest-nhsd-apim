@@ -3,6 +3,14 @@ An example of the tests you can run using pytest_nhsd_apim
 """
 import pytest
 import requests
+import json
+
+def test_ping(proxy_url):
+    resp = requests.get(proxy_url + "/_ping")
+    assert resp.status_code == 200
+    ping_data = json.loads(resp.text)
+    assert "version" in ping_data
+
 
 
 @pytest.mark.products(["hello-world-internal-dev"])

@@ -18,6 +18,12 @@ def _now_ms() -> int:
 def pytest_addoption(parser):
     group = parser.getgroup("nhsd-apim")
     group.addoption(
+        "--proxy-name",
+        action="store",
+        dest="PROXY_NAME",
+        help="Name of the proxy on Apigee."
+    )
+    group.addoption(
         "--apigee-access-token",
         action="store",
         dest="APIGEE_ACCESS_TOKEN",
@@ -42,6 +48,10 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "products(products): Marker to indicate the list of products the test app should be subscribed to for this test.")
 
 
+
+##########
+# Fixtures
+##########
 @pytest.fixture(scope="session")
 def nhsd_apim_config(request):
     def _get_config(name):
@@ -55,7 +65,7 @@ def nhsd_apim_config(request):
 
     return {
         k: _get_config(k)
-        for k in ["APIGEE_ACCESS_TOKEN", "APIGEE_ORGANIZATION", "APIGEE_DEVELOPER"]
+        for k in ["PROXY_NAME", "APIGEE_ACCESS_TOKEN", "APIGEE_ORGANIZATION", "APIGEE_DEVELOPER"]
     }
 
 
@@ -84,6 +94,49 @@ def _apigee_products(_apigee_edge_session, nhsd_apim_config):
         else:
             got_all_products = True
     return products
+
+
+@pytest.fixture(scope="session")
+def _apigee_proxy(_apigee_edge_session, nhsd_apim_config):
+    """
+    Get the current revision deployed and pull proxy metadata.
+    """
+    org = nhsd_apim_config["APIGEE_ORGANIZATION"]
+    proxy_name = nhsd_apim_config["PROXY_NAME"]
+    proxy_base_url = APIGEE_BASE_URL + f"organizations/{org}/apis/{proxy_name}"    
+    
+    deployment_resp = _apigee_edge_session.get(proxy_base_url + "/deployments")
+    deployment_json = deployment_resp.json()
+
+    # Should be the case
+    assert len(deployment_json["environment"]) == 1
+    
+    deployed_revisions = [
+        d
+        for d in deployment_json["environment"][0]["revision"]
+        if d["state"] == "deployed" # Sometimes we have partial, "missing" deployments
+    ]
+    assert len(deployed_revisions) == 1
+    deployed_revision = deployed_revisions[0]
+
+    revision = deployed_revision["name"]
+    
+    proxy_resp = _apigee_edge_session.get(proxy_base_url + f"/revisions/{revision}")
+    assert proxy_resp.status_code == 200
+    proxy_json = proxy_resp.json()
+    proxy_json["environment"] = deployment_json["environment"][0]["name"]
+    return proxy_json
+
+
+
+@pytest.fixture(scope="session")
+def proxy_url(_apigee_proxy):
+    env = _apigee_proxy["environment"]
+    prefix = "https://"
+    if env != "prod":
+        prefix = prefix + f"{env}."
+    return prefix + "api.service.nhs.uk/" + _apigee_proxy["basepaths"][0]
+
 
 
 @pytest.fixture(scope="session")
@@ -214,3 +267,5 @@ def apikey(test_app_credentials):
     Sufficient to access the lightest of our authorization patterns.
     """
     return test_app_credentials["consumerKey"]
+
+
