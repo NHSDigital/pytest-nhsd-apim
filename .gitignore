@@ -1,2 +1,8 @@
 env
 .direnv
+build
+dist
+**/*.egg
+**/*.pyc
+**/__pycache__
+**/*.egg-info

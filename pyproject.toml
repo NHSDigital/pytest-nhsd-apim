@@ -1,11 +1,13 @@
 [tool.poetry]
-name = "api-management-tests"
+name = "pytest-nhsd-apim"
 version = "0.1.0"
-description = "Test your proxy"
+description = "Test your NHSD APIM proxy"
 authors = ["Ben Strutt <ben.strutt1@nhs.net>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
+setuptools = "^60.5.0"
+requests = "^2.27.1"
 
 [tool.poetry.dev-dependencies]
 

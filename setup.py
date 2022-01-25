@@ -1,0 +1,31 @@
+import os
+import re
+from setuptools import setup, find_packages
+
+
+def pyproject_version():
+    """Read the version name in pyproject.toml"""
+    pyproject_toml = os.path.join(os.path.dirname(__file__), "pyproject.toml")
+    with open(pyproject_toml) as f:
+        for line in f.readlines():
+            m = re.match('version = "([0-9]\.[0-9]\.[0-9])"', line)
+            if m is not None:
+                return m.group(1)
+
+
+setup(
+    name="pytest-nhsd-apim",
+    version=pyproject_version(),
+    author="Ben Strutt",
+    author_email="ben.strutt1@nhs.net",
+    maintainer="Ben Strutt",
+    maintainer_email="ben.strutt1@nhs.net",
+    license="CROWN",
+    url="https://github.com/NHSDigital/pytest-nhsd-apim",
+    description="Pytest plugin accessing NHSDigital's APIM proxies",
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
+    python_requires=">=3.8",
+    entry_points={"pytest11": ["nhsd_apim = pytest_nhsd_apim.pytest_nhsd_apim"]},
+    classifiers=["Framework :: Pytest"],
+)
