@@ -33,3 +33,11 @@ def test_app_apikey_fails_with_invalid_products(apikey):
     )
     assert resp.status_code == 401
 
+
+@pytest.mark.xfail
+@pytest.mark.products(["non-existant-product-1234-alpha-tango-hello"])
+def test_wont_work_with_nonexistant_product(apikey):
+    """
+    The test will automatically fail if you specify a product name that doesn't exist.
+    """
+    pass

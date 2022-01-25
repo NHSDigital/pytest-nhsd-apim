@@ -68,7 +68,7 @@ def _apigee_edge_session(nhsd_apim_config):
 
 
 @pytest.fixture(scope="session")
-def apigee_products(_apigee_edge_session, nhsd_apim_config):
+def _apigee_products(_apigee_edge_session, nhsd_apim_config):
     got_all_products = False
     org = nhsd_apim_config["APIGEE_ORGANIZATION"]
     products_url = APIGEE_BASE_URL + f"organizations/{org}/apiproducts"
@@ -144,7 +144,7 @@ def test_app(_test_app, _apigee_edge_session, _apigee_app_base_url) -> Callable:
 
 
 @pytest.fixture()
-def test_app_credentials(request, _apigee_app_base_url, _apigee_edge_session, test_app, apigee_products):
+def test_app_credentials(request, _apigee_app_base_url, _apigee_edge_session, test_app, _apigee_products):
     """
     Use this fixture to get a set of credentials which has access to a
     set of products defined via a pytest mark.  The mark should have a
@@ -164,6 +164,12 @@ def test_app_credentials(request, _apigee_app_base_url, _apigee_edge_session, te
         desired_products = []
     else:
         desired_products = products_marker.args[0]
+        # Ensure the desired products exist on apigee...
+        for desired_product in desired_products:
+            try:
+                next(filter(lambda p: p["name"] == desired_product, _apigee_products))
+            except StopIteration:
+                raise ValueError(f"Product {desired_product} does not exist")
 
     print(f"desired_products={desired_products}")
 
