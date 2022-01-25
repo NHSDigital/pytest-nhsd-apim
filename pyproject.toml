@@ -8,6 +8,7 @@ authors = ["Ben Strutt <ben.strutt1@nhs.net>"]
 python = "^3.8"
 setuptools = "^60.5.0"
 requests = "^2.27.1"
+lxml = "^4.7.1"
 
 [tool.poetry.dev-dependencies]
 

@@ -5,47 +5,65 @@ import pytest
 import requests
 import json
 
+@pytest.mark.skip(reason="testing")
 def test_ping(proxy_url):
+    """
+    Set a request to an open access endpoint.
+    """
     resp = requests.get(proxy_url + "/_ping")
     assert resp.status_code == 200
     ping_data = json.loads(resp.text)
     assert "version" in ping_data
 
 
-
-@pytest.mark.products(["hello-world-internal-dev"])
-def test_app_apikey_works_with_correct_products(apikey):
+@pytest.mark.skip(reason="testing")
+def test_app_apikey_works_with_correct_product(proxy_url, apikey):
     """
-    Specify the exact set of products you want to be subscribed to.
-    Then get the apikey and use it in a request.
-    """
+    Ask for an apikey for a product that is subscribed to your proxy.
+    This creates a test app and subscribes it to an appropriate
+    product behind the scenes.
 
-    resp = requests.get(
-        "https://internal-dev.api.service.nhs.uk/hello-world/hello/application",
-        headers={"apikey": apikey},
-    )
+    If there is no such product, the test will fail.
+    """
+    resp = requests.get(proxy_url + "/hello/application", headers={"apikey": apikey})
 
     assert resp.status_code == 200
     assert "Hello Application" in resp.text
 
 
-@pytest.mark.products(["hello-world-internal-dev-sandbox"])
-def test_app_apikey_fails_with_invalid_products(apikey):
+
+@pytest.mark.skip(reason="testing")
+def test_app_apikey_fails_with_invalid_product(apikey):
     """
-    If the app is subscribed to a product in the wrong environment, we
-    should receive a 401.
+    Here we send a request to the wrong proxy to confirm, indeed we
+    get rejected.
     """
     resp = requests.get(
-        "https://internal-dev.api.service.nhs.uk/hello-world/hello/application",
-        headers={"apikey": apikey, "foo": "bar"},
+        "https://sandbox.api.service.nhs.uk/hello-world/hello/application",
+        headers={"apikey": apikey},
     )
     assert resp.status_code == 401
 
 
-@pytest.mark.xfail
-@pytest.mark.products(["non-existant-product-1234-alpha-tango-hello"])
-def test_wont_work_with_nonexistant_product(apikey):
+@pytest.mark.product_scope("urn:nhsd:apim:user-nhs-id:aal3:hello-world")
+def test_access_token_magic_works(proxy_url, access_token):
     """
-    The test will automatically fail if you specify a product name that doesn't exist.
+    The access_token fixture does the hard work of the authorization
+    journey for you.
+
+    It will figure out the correct product from the scope you provide
+    via the pytest.mark.product_scope.  (This should line up with one
+    of the products in your manifest file!)
+
+    If you pick a product_scope implying user restricted, it will do
+    the three-legged oauth for you.
+
+    If you pick a product scope implying an application-restricted
+    pattern it do signed-jwt authentication.
     """
-    pass
+    resp = requests.get(
+        proxy_url + "/hello/user",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert resp.status_code == 200
+    assert "Hello User" in resp.text
