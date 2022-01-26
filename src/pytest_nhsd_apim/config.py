@@ -9,7 +9,6 @@ And a few fixtures to pull that config in.
 """
 import os
 
-
 import pytest
 
 
@@ -32,7 +31,7 @@ _PYTEST_CONFIG = {
 
 
 def _flag_to_dest(flag):
-    # e.g. --apigee-access-token s stored as APIGEE_ACCESS_TOKEN
+    # e.g. --apigee-access-token is stored as APIGEE_ACCESS_TOKEN
     return flag[2:].replace("-", "_").upper()
 
 
@@ -69,7 +68,7 @@ def pytest_configure(config):
 
 
 @pytest.fixture(scope="session")
-def config(request):
+def nhsd_apim_config(request):
     """
     Use this fixture to access the config.
     It check environment variables as well as the CLI.
