@@ -8,6 +8,8 @@ from lxml import html
 import pytest
 import requests
 
+from . import auth_journey
+
 APIGEE_BASE_URL = "https://api.enterprise.apigee.com/v1/"
 
 ##########
@@ -104,14 +106,14 @@ def _apigee_proxy(_apigee_edge_session, nhsd_apim_config):
     """
     org = nhsd_apim_config["APIGEE_ORGANIZATION"]
     proxy_name = nhsd_apim_config["PROXY_NAME"]
-    proxy_base_url = APIGEE_BASE_URL + f"organizations/{org}/apis/{proxy_name}"    
-    
+    proxy_base_url = APIGEE_BASE_URL + f"organizations/{org}/apis/{proxy_name}"
+
     deployment_resp = _apigee_edge_session.get(proxy_base_url + "/deployments")
     deployment_json = deployment_resp.json()
 
     # Should be the case
     assert len(deployment_json["environment"]) == 1
-    
+
     deployed_revisions = [
         d
         for d in deployment_json["environment"][0]["revision"]
@@ -121,7 +123,7 @@ def _apigee_proxy(_apigee_edge_session, nhsd_apim_config):
     deployed_revision = deployed_revisions[0]
 
     revision = deployed_revision["name"]
-    
+
     proxy_resp = _apigee_edge_session.get(proxy_base_url + f"/revisions/{revision}")
     assert proxy_resp.status_code == 200
     proxy_json = proxy_resp.json()
@@ -209,7 +211,7 @@ def test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Ca
     # pytest fixtures are wonderful, and do lots of magical things.
     #
     # But...
-    # 
+    #
     # In any well developed pytest extension, one ends up with a
     # complicated dependency graph of fixtures calling fixtures
     # calling fixtures. In some of these fixtures we want the
@@ -221,7 +223,7 @@ def test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Ca
     # Apigee be the sole arbiter of the current state of our test app,
     # at the cost of an API call.  Therefore I'm returning a callable
     # rather than JSON from this fixture.
-    # 
+    #
     # In any case, if we get the higher level abstrations right in
     # this pytest-extension, a run-of-the-mill user won't need to know
     # much about the app at all, they will just have credentials to
@@ -262,7 +264,7 @@ def _test_app_credentials(_apigee_app_base_url, _apigee_edge_session, test_app, 
     # by the user. So, we use the apigee edge api to add another set
     # of credentials:
     # https://apidocs.apigee.com/docs/developer-apps/1/routes/organizations/%7Borg_name%7D/developers/%7Bdeveloper_email%7D/apps/%7Bapp_name%7D/put
-    
+
     current_app_state["apiProducts"] = [_proxy_product_with_scope["name"]]
     app_url = _apigee_app_base_url + "/" + current_app_state["name"]
     resp = _apigee_edge_session.put(app_url, json=current_app_state)
@@ -297,7 +299,7 @@ def _scope(request):
             "pytest.marker.product_scope requires one positional arg 'scope'"
         )
     return str(marker.args[0])
-        
+
 
 @pytest.fixture()
 def _proxy_product_with_scope(_scope, _proxy_products, _proxy_name):
@@ -325,13 +327,13 @@ def _proxy_product_with_scope(_scope, _proxy_products, _proxy_name):
     )
 
 
-        
+
 @pytest.fixture()
 def apikey(_test_app_credentials):
     """
     Sufficient to access the level of application_restricted auth patterns.
     """
-    return _test_app_credentials["consumerKey"] 
+    return _test_app_credentials["consumerKey"]
 
 
 @pytest.fixture(scope="session")
@@ -342,68 +344,36 @@ def _identity_service_base_url():
 
 
 @pytest.fixture()
+def _user_restricted_access_token(
+    _scope,
+    _test_app_credentials,
+    _test_app_callback_url,
+    _identity_service_base_url,
+):
+    if not _scope.startswith("urn:nhsd:apim:user"):
+        return None
+
+    return auth_journey.get_user_restricted_access_token(
+        _identity_service_base_url,
+        _test_app_credentials["consumerKey"],
+        _test_app_credentials["consumerSecret"],
+        _test_app_callback_url,
+    )
+
+
+
+@pytest.fixture()
+def _signed_jwt_access_token():
+    return None
+
+
+@pytest.fixture()
 def access_token(
-        _test_app_credentials, _scope, _proxy_product_with_scope, _test_app_callback_url,
-        _identity_service_base_url
+        _signed_jwt_access_token,
+        _user_restricted_access_token,
 ):
 
-    # User restricted
-    if _scope.startswith("urn:nhsd:apim:user"):
-        authorize_url = f"{_identity_service_base_url}/authorize"
-        resp = requests.get(
-            authorize_url,
-            params={
-                "client_id": _test_app_credentials["consumerKey"],
-                "redirect_uri": _test_app_callback_url,
-                "response_type": "code",
-                "state": "1234567890",
-            },
-        )
-        
-        if resp.status_code != 200:
-            raise RuntimeError(f"{authorize_url} request returned {resp.status_code}: {resp.text}")
-        tree = html.fromstring(resp.content.decode())
-        
-        state = None
-        for form in tree.body:
-            assert form.tag == "form"
-            input_elems = [item for item in form if item.tag == "input"]
-            state = dict(input_elems[0].items())["value"]
-
-            # TODO make this configurable
-            simulated_auth_url = "https://internal-dev.api.service.nhs.uk/mock-nhsid-jwks/simulated_auth"
-            resp2 = requests.post(
-                simulated_auth_url, data={"state": state}
-            )
-        
-        # We do the POST identity-service expects from the callback
-        # url webpage ourselves...
-
-        # requests has been redirected (like a browser) to whatever
-        # our _test_app_callback_url is.  The auth code was in the
-        # redirect query string, so we go grab it from the redirect
-        # history.
-        qs = urlparse(resp2.history[-1].headers["Location"]).query
-        auth_code = parse_qs(qs)["code"]
-        if isinstance(auth_code, list):
-            auth_code = auth_code[0]
-    
-        resp3 = requests.post(
-            f"{_identity_service_base_url}/token",
-            data={
-                "grant_type": "authorization_code",
-                "code": auth_code,
-                "redirect_uri": _test_app_callback_url,
-                "client_id": _test_app_credentials["consumerKey"],
-                "client_secret": _test_app_credentials["consumerSecret"]
-            },
-        )
-        token_data = resp3.json()
-        return token_data["access_token"]
-
-    elif _scope.startswith("urn:nhsd:apim:app"):
-        # The only application restricted pattern that gets you an
-        # access_token is signed-jwt.
-        pass
-    
-    
+    if _signed_jwt_access_token:
+        return _signed_jwt_access_token
+    elif _user_restricted_access_token:
+        return _user_restricted_access_token
