@@ -10,80 +10,25 @@ import requests
 
 from . import auth_journey
 
+# Import HOOKS so pytest runs them.
+from .config import pytest_addoption, pytest_configure, config
+
 APIGEE_BASE_URL = "https://api.enterprise.apigee.com/v1/"
 
-##########
-# HOOKS
-##########
-def pytest_addoption(parser):
-    group = parser.getgroup("nhsd-apim")
-    group.addoption(
-        "--proxy-name",
-        action="store",
-        dest="PROXY_NAME",
-        help="Name of the proxy on Apigee."
-    )
-    group.addoption(
-        "--apigee-access-token",
-        action="store",
-        dest="APIGEE_ACCESS_TOKEN",
-        help="Access token to log into apigee edge API, output of get_token",
-    )
-    group.addoption(
-        "--apigee-organization",
-        action="store",
-        dest="APIGEE_ORGANIZATION",
-        help="nhsd-nonprod/nhsd-prod",
-        default="nhsd-nonprod",
-    )
-    group.addoption(
-        "--apigee-developer",
-        action="store",
-        dest="APIGEE_DEVELOPER",
-        help="Developer under which to register the app",
-        default="apm-testing-internal-dev@nhs.net",
-    )
-
-def pytest_configure(config):
-    config.addinivalue_line(
-        "markers",
-        "product_scope(scope): Marker to indicate a required scope when selecting a product to register our test application to",
-    )
-
-
-
-##########
-# Fixtures
-##########
-@pytest.fixture(scope="session")
-def nhsd_apim_config(request):
-    def _get_config(name):
-        cmd_line_value = getattr(request.config.option, name)
-        if cmd_line_value is not None:
-            return cmd_line_value
-        env_var_value = os.environ.get(name)
-        if env_var_value is not None:
-            return env_var_value
-        raise ValueError(f"Required config: {name} is not set.")
-
-    return {
-        k: _get_config(k)
-        for k in ["PROXY_NAME", "APIGEE_ACCESS_TOKEN", "APIGEE_ORGANIZATION", "APIGEE_DEVELOPER"]
-    }
 
 
 @pytest.fixture(scope="session")
-def _apigee_edge_session(nhsd_apim_config):
-    token = nhsd_apim_config["APIGEE_ACCESS_TOKEN"]
+def _apigee_edge_session(config):
+    token = config["APIGEE_ACCESS_TOKEN"]
     session = requests.session()
     session.headers = {"Authorization": f"Bearer {token}"}
     return session
 
 
 @pytest.fixture(scope="session")
-def _apigee_products(_apigee_edge_session, nhsd_apim_config):
+def _apigee_products(_apigee_edge_session, config):
     got_all_products = False
-    org = nhsd_apim_config["APIGEE_ORGANIZATION"]
+    org = config["APIGEE_ORGANIZATION"]
     products_url = APIGEE_BASE_URL + f"organizations/{org}/apiproducts"
     params = {"expand": "true"}
     products = []
@@ -100,12 +45,12 @@ def _apigee_products(_apigee_edge_session, nhsd_apim_config):
 
 
 @pytest.fixture(scope="session")
-def _apigee_proxy(_apigee_edge_session, nhsd_apim_config):
+def _apigee_proxy(_apigee_edge_session, config):
     """
     Get the current revision deployed and pull proxy metadata.
     """
-    org = nhsd_apim_config["APIGEE_ORGANIZATION"]
-    proxy_name = nhsd_apim_config["PROXY_NAME"]
+    org = config["APIGEE_ORGANIZATION"]
+    proxy_name = config["APIGEE_PROXY_NAME"]
     proxy_base_url = APIGEE_BASE_URL + f"organizations/{org}/apis/{proxy_name}"
 
     deployment_resp = _apigee_edge_session.get(proxy_base_url + "/deployments")
@@ -132,8 +77,8 @@ def _apigee_proxy(_apigee_edge_session, nhsd_apim_config):
 
 
 @pytest.fixture(scope="session")
-def _proxy_name(nhsd_apim_config):
-    return nhsd_apim_config["PROXY_NAME"]
+def _proxy_name(config):
+    return config["APIGEE_PROXY_NAME"]
 
 
 @pytest.fixture(scope="session")
@@ -167,9 +112,9 @@ def proxy_url(_apigee_proxy):
 
 
 @pytest.fixture(scope="session")
-def _apigee_app_base_url(nhsd_apim_config):
-    org = nhsd_apim_config["APIGEE_ORGANIZATION"]
-    dev = nhsd_apim_config["APIGEE_DEVELOPER"]
+def _apigee_app_base_url(config):
+    org = config["APIGEE_ORGANIZATION"]
+    dev = config["APIGEE_DEVELOPER"]
     url = APIGEE_BASE_URL + f"organizations/{org}/developers/{dev}/apps"
     return url
 
