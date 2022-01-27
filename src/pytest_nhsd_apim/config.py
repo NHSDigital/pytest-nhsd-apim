@@ -1,5 +1,5 @@
 """
-This module defined all the pytest config.
+This module defines all the pytest config.
 
 - command line flags
 - ini options
@@ -27,6 +27,19 @@ _PYTEST_CONFIG = {
         "help": "Developer that will own the test app.",
         "default": "apm-testing-internal-dev@nhs.net",
     },
+    "--jwt-public-key-id": {
+        "help": "Key ID ('kid') to select particular key.",
+        "default": "test-1",
+    },
+    ## TODO: Add these if the user wishes...
+    # "--jwt-public-key-url": {
+    #     "help": "URL of JWT public key. Must be used with --jwt-private-key-file.",
+    #     "default": None
+    # },
+    # "--jwt-private-key-file": {
+    #     "help": "Path to private key of JWT. Must be used with --jwt-public-key-url.",
+    #     "default": None,
+    # }
 }
 
 
@@ -41,7 +54,7 @@ def pytest_addoption(parser):
 
     Pytest calls this at some point to get command line flags into the
     request.config object.
-
+    
     I also want to be able to define sensitive config, e.g.
     apigee_access_token via environment variables.
     """
@@ -70,8 +83,8 @@ def pytest_configure(config):
 @pytest.fixture(scope="session")
 def nhsd_apim_config(request):
     """
-    Use this fixture to access the config.
-    It check environment variables as well as the CLI.
+    Use this fixture to access this pytest extension's config.
+    It checks environment variables as well as the CLI.
     """
     def _get_config(flag):
         name = _flag_to_dest(flag)
@@ -89,3 +102,5 @@ def nhsd_apim_config(request):
         )
     
     return {_flag_to_dest(flag): _get_config(flag) for flag in _PYTEST_CONFIG}
+
+

@@ -12,6 +12,7 @@ import requests
 import pytest
 
 from .config import nhsd_apim_config
+from .auth_journey import jwt_public_key_url
 
 APIGEE_BASE_URL = "https://api.enterprise.apigee.com/v1/"
 
@@ -32,16 +33,12 @@ def _proxy_name(nhsd_apim_config):
     return nhsd_apim_config["APIGEE_PROXY_NAME"]
 
 
-
-
 @pytest.fixture(scope="session")
 def _apigee_app_base_url(nhsd_apim_config):
     org = nhsd_apim_config["APIGEE_ORGANIZATION"]
     dev = nhsd_apim_config["APIGEE_DEVELOPER"]
     url = APIGEE_BASE_URL + f"organizations/{org}/developers/{dev}/apps"
     return url
-
-
 
 
 @pytest.fixture(scope="session")
@@ -62,7 +59,7 @@ def _apigee_proxy(_apigee_edge_session, nhsd_apim_config):
     deployed_revisions = [
         d
         for d in deployment_json["environment"][0]["revision"]
-        if d["state"] == "deployed" # Sometimes we have partial, "missing" deployments
+        if d["state"] == "deployed"  # Sometimes we have partial, "missing" deployments
     ]
     assert len(deployed_revisions) == 1
     deployed_revision = deployed_revisions[0]
@@ -74,8 +71,6 @@ def _apigee_proxy(_apigee_edge_session, nhsd_apim_config):
     proxy_json = proxy_resp.json()
     proxy_json["environment"] = deployment_json["environment"][0]["name"]
     return proxy_json
-
-
 
 
 @pytest.fixture(scope="session")
@@ -95,9 +90,6 @@ def _proxy_products(_proxy_name, _apigee_products):
     if len(proxy_products) == 0:
         raise ValueError(f"No products grant access to proxy {_proxy_name}")
     return proxy_products
-
-
-
 
 
 @pytest.fixture()
@@ -149,7 +141,6 @@ def _proxy_product_with_scope(_scope, _proxy_products, _proxy_name):
     )
 
 
-    
 @pytest.fixture()
 def test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Callable:
     """
@@ -167,7 +158,7 @@ def test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Ca
     # The answer is... it's really hard to know.
     #
     # As much as I love pytest-provided caching, it's safest to let
-    # Apigee be the sole arbiter of the current state of our test app,
+    # Apigee be the sole arbiter of the current state of our test app
     # at the cost of an API call.  Therefore I'm returning a callable
     # rather than JSON from this fixture.
     #
@@ -176,21 +167,32 @@ def test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Ca
     # much about the app at all, they will just have credentials to
     # call their api.
     def app():
-        resp = _apigee_edge_session.get(_apigee_app_base_url + "/" + _create_test_app["name"])
+        resp = _apigee_edge_session.get(
+            _apigee_app_base_url + "/" + _create_test_app["name"]
+        )
         return resp.json()
+
     return app
 
 
 @pytest.fixture()
-def _test_app_credentials(_apigee_app_base_url, _apigee_edge_session, test_app, _scope, _proxy_product_with_scope):
+def _test_app_credentials(
+    _apigee_app_base_url,
+    _apigee_edge_session,
+    test_app,
+    _scope,
+    _proxy_product_with_scope,
+):
     def get_matching_creds(app):
         def approved(x):
             return x["status"] == "approved"
 
-        now = int(1000*datetime.utcnow().timestamp())
+        now = int(1000 * datetime.utcnow().timestamp())
         for creds in filter(approved, app["credentials"]):
             if creds["expiresAt"] == -1 or now < creds["expiresAt"]:
-                approved_product_names = [p["apiproduct"] for p in filter(approved, creds["apiProducts"])]
+                approved_product_names = [
+                    p["apiproduct"] for p in filter(approved, creds["apiProducts"])
+                ]
                 if _proxy_product_with_scope["name"] in approved_product_names:
                     return creds
 
@@ -209,12 +211,13 @@ def _test_app_credentials(_apigee_app_base_url, _apigee_edge_session, test_app, 
     app_url = _apigee_app_base_url + "/" + current_app_state["name"]
     resp = _apigee_edge_session.put(app_url, json=current_app_state)
     if resp.status_code != 200:
-        raise ValueError(f"Unexpected response from {app_url}: {resp.status_code}, {resp.text}")
+        raise ValueError(
+            f"Unexpected response from {app_url}: {resp.status_code}, {resp.text}"
+        )
 
     current_app_state = resp.json()
     matching_creds = get_matching_creds(current_app_state)
     return matching_creds
-
 
 
 @pytest.fixture(scope="session")
@@ -244,10 +247,8 @@ def _apigee_products(_apigee_edge_session, nhsd_apim_config):
     return products
 
 
-
-
 @pytest.fixture(scope="session")
-def _create_test_app(_apigee_app_base_url, _apigee_edge_session):
+def _create_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_url):
     """
     Create an ephemeral app that lasts the duration of the pytest
     session.
@@ -262,6 +263,7 @@ def _create_test_app(_apigee_app_base_url, _apigee_edge_session):
     app = {
         "name": f"apim-auto-{uuid4()}",
         "callbackUrl": "https://example.org/callback",
+        "attributes": [{"name": "jwks-resource-url", "value": jwt_public_key_url}],
     }
     create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app)
     assert create_resp.status_code == 201
@@ -271,10 +273,6 @@ def _create_test_app(_apigee_app_base_url, _apigee_edge_session):
     assert delete_resp.status_code == 200
 
 
-
-
-
 @pytest.fixture(scope="session")
 def _test_app_callback_url(_create_test_app):
     return _create_test_app["callbackUrl"]
-

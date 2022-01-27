@@ -42,7 +42,15 @@ from .apigee_edge import (
     _test_app_callback_url,
 )
 
-from . import auth_journey
+from .auth_journey import (
+    get_access_token_via_user_restricted_flow,
+    get_access_token_via_signed_jwt_flow,
+    _jwt_keys,
+    jwt_private_key_pem,
+    jwt_public_key_pem,
+    jwt_public_key,
+    jwt_public_key_url,
+)
 
 
 @pytest.fixture(scope="session")
@@ -81,28 +89,41 @@ def _identity_service_base_url():
 
 @pytest.fixture()
 def _user_restricted_access_token(
-    _scope, _test_app_credentials, _test_app_callback_url, _identity_service_base_url
+        _scope, _test_app_credentials, _test_app_callback_url, _identity_service_base_url
 ):
     if not _scope.startswith("urn:nhsd:apim:user"):
         return None
 
-    return auth_journey.get_user_restricted_access_token(
-        _identity_service_base_url,
-        _test_app_credentials["consumerKey"],
-        _test_app_credentials["consumerSecret"],
-        _test_app_callback_url,
-    )
 
+    
+    
 
 @pytest.fixture()
-def _signed_jwt_access_token():
-    return None
+def access_token(
+    _scope,
+    _test_app_credentials,
+    _test_app_callback_url,
+    _identity_service_base_url,
+    jwt_private_key_pem,
+    # jwt_public_key_id,
+):
+    """
+    The main fixture.
+    """
+    if _scope.startswith("urn:nhsd:apim:user"):
+        return get_access_token_via_user_restricted_flow(
+            _identity_service_base_url,
+            _test_app_credentials["consumerKey"],
+            _test_app_credentials["consumerSecret"],
+            _test_app_callback_url,
+        )
 
+    if _scope.startswith("urn:nhsd:apim:app"):
+        return get_access_token_via_signed_jwt_flow(
+            _identity_service_base_url,
+            _test_app_credentials["consumerKey"],
+            jwt_private_key_pem,
+            "test-1",
+        )
 
-@pytest.fixture()
-def access_token(_signed_jwt_access_token, _user_restricted_access_token):
-
-    if _signed_jwt_access_token:
-        return _signed_jwt_access_token
-    elif _user_restricted_access_token:
-        return _user_restricted_access_token
+    raise RuntimeError("Shouldn't get here")

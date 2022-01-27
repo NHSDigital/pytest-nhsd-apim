@@ -1,5 +1,8 @@
 """
-An example of the tests you can run using pytest_nhsd_apim
+
+Example tests that show all the features of pytest_nhsd_apim.
+
+They also serve to test the tests themselves.
 """
 import pytest
 import requests
@@ -45,7 +48,8 @@ def test_app_apikey_fails_with_invalid_product(apikey):
     assert resp.status_code == 401
 
 
-@pytest.mark.product_scope("urn:nhsd:apim:user-nhs-id:aal3:hello-world")
+
+@pytest.mark.product_scope("urn:nhsd:apim:app:level3:hello-world")
 def test_access_token_magic_works(proxy_url, access_token):
     """
     The access_token fixture does the hard work of the authorization

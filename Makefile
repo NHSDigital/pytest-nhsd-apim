@@ -1,12 +1,11 @@
-.PHONY: build
+.PHONY: build clean test
 
 build:
-	@poetry run python setup.py install
-
+	@poetry run python setup.py install 2>/dev/null >/dev/null
 
 clean:
 	@rm -rf build dist
 
-test:
-	# @pytest tests/test_nhsd_apim.py --proxy-name=hello-world-internal-dev
-	pytest tests/test_examples.py --apigee-proxy-name=hello-world-internal-dev
+test: build clean
+	@pytest tests/test_examples.py -s --apigee-proxy-name=hello-world-internal-dev
+

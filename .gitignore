@@ -6,3 +6,4 @@ dist
 **/*.pyc
 **/__pycache__
 **/*.egg-info
+**/jwtRS512.key
