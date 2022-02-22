@@ -8,6 +8,7 @@ the test app.
 from typing import Callable
 from uuid import uuid4
 from datetime import datetime
+import functools
 
 import requests
 import pytest
@@ -42,6 +43,7 @@ def _apigee_app_base_url(nhsd_apim_config):
     return url
 
 
+@functools.lru_cache(maxsize=None)
 def _get_proxy_json(session, proxy_base_url):
     """
     Query the apigee edge API to get data about the desired proxy, in particular it's current deployment.

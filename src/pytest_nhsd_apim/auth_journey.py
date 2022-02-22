@@ -5,6 +5,7 @@ from urllib.parse import urlparse, parse_qs
 import pathlib
 from time import time
 import uuid
+from functools import lru_cache
 
 import pytest
 import requests
@@ -182,6 +183,7 @@ def get_access_token_via_signed_jwt_flow(
     return token_data["access_token"]
 
 
+@lru_cache(maxsize=None)
 def create_jwt_key_pair(key_id):
     """
     Pure python instructions to generate a public-key/ private-key
