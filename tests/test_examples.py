@@ -43,6 +43,7 @@ def test_app_apikey_fails_with_invalid_product(apikey):
     assert resp.status_code == 401
 
 
+
 @pytest.mark.product_scope("urn:nhsd:apim:user-nhs-id:aal3:hello-world")
 def test_products_subscribe_to_two_identity_services(_identity_service_proxy_names):
     assert len(_identity_service_proxy_names) == 2
@@ -50,12 +51,7 @@ def test_products_subscribe_to_two_identity_services(_identity_service_proxy_nam
 
 @pytest.mark.product_scope("urn:nhsd:apim:user-nhs-id:aal3:hello-world")
 def test_access_token(proxy_base_url, access_token):
-    print("HERE!")
-    print(access_token)
-    print("HERE!")
-    
-    raise ValueError()
-    resp = requests.post(
+    resp = requests.get(
         proxy_base_url + "/hello/user",
         headers={"Authorization": f"Bearer {access_token}"},
     )
@@ -65,12 +61,7 @@ def test_access_token(proxy_base_url, access_token):
 
 @pytest.mark.product_scope("urn:nhsd:apim:user-nhs-id:aal3:hello-world")
 def test_access_token2(proxy_base_url, access_token):
-    print("HERE2!")
-    print(access_token)
-    print("HERE2!")
-    raise ValueError()
-    
-    resp = requests.put(
+    resp = requests.get(
         proxy_base_url + "/hello/user",
         headers={"Authorization": f"Bearer {access_token}"},
     )
@@ -78,11 +69,21 @@ def test_access_token2(proxy_base_url, access_token):
     assert "Hello User" in resp.text
 
     
-# @pytest.mark.product_scope("urn:nhsd:apim:app:level3:hello-world")
-# def test_access_token(proxy_base_url, access_token):
-#     resp = requests.get(
-#         proxy_base_url + "/hello/user",
-#         headers={"Authorization": f"Bearer {access_token}"},
-#     )
-#     assert resp.status_code == 200
-#     assert "Hello User" in resp.text
+@pytest.mark.product_scope("urn:nhsd:apim:app:level3:hello-world")
+def test_access_token3(proxy_base_url, access_token):
+    resp = requests.get(
+        proxy_base_url + "/hello/user",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert resp.status_code == 200
+    assert "Hello User" in resp.text
+
+@pytest.mark.product_scope("urn:nhsd:apim:app:level3:hello-world")
+def test_access_token4(proxy_base_url, access_token):
+    resp = requests.get(
+        proxy_base_url + "/hello/user",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert resp.status_code == 200
+    assert "Hello User" in resp.text
+    
