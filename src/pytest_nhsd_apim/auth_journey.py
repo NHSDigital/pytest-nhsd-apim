@@ -22,17 +22,31 @@ _CACHED_CIS2_SIMULATED_AUTH_TOKEN_DATA = {}
 _CACHED_JWT_TOKEN_DATA = {}
 
 
+def _insert_into_cache(client_id,
+                       cache: Dict,
+                       token):
+    if "issued_at" not in token:
+        # only present on app-restricted tokens.
+        # we can inject this ourselves
+        token["issued_at"] = time() - 5000 # assume 5 seconds ago, probably was more recently
+    cache[client_id] = token
+
+
 def _check_cache(
-    client_id, cache: Dict[str, Dict], grace_period_seconds: int = 10
+    client_id: str,
+    cache: Dict,
+    grace_period_seconds: int = 10
 ) -> Optional[str]:
     """
     Return a non-expired access token with the same client_id or None.
     """
     if client_id not in cache:
         return None
+
     old_token = cache[client_id]
-    now_ish = int(time.time()) + grace_period_seconds
-    if now_ish < old_token["issued_at"] + old_token["expires_in"]:
+    now_ish = int(time()) + grace_period_seconds
+    # issued at epoch_time in milliseconds, expires_in is in seconds, so need factor of 1000
+    if now_ish < int(old_token["issued_at"]) + 1000*int(old_token["expires_in"]):
         return old_token["access_token"]
 
 
@@ -128,7 +142,8 @@ def get_access_token_via_user_restricted_flow(
     )
     token_data = resp3.json()
 
-    _CACHED_CIS2_SIMULATED_AUTH_TOKEN_DATA[client_id] = token_data
+    _insert_into_cache(client_id, _CACHED_CIS2_SIMULATED_AUTH_TOKEN_DATA, token_data)
+
     # 6. Profit
     return token_data["access_token"]
 
@@ -178,8 +193,8 @@ def get_access_token_via_signed_jwt_flow(
         },
     )
     token_data = resp.json()
+    _insert_into_cache(client_id, _CACHED_JWT_TOKEN_DATA, token_data)
 
-    _CACHED_JWT_TOKEN_DATA[client_id] = token_data
     return token_data["access_token"]
 
 
