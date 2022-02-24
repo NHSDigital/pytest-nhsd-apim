@@ -22,7 +22,7 @@ import pytest
 from .config import pytest_addoption, pytest_configure, nhsd_apim_config
 
 # Note: At runtime, pytest does not follow the imports we define in
-# our files. Instead it just looks amongst all the things it found
+# our files. Instead, it just looks amongst all the things it found
 # when it imported our extension.  This means we have to import *all*
 # of our fixtures into this module even if they are only called as
 # dependencies of our public fixtures.

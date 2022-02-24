@@ -13,8 +13,8 @@ import functools
 import requests
 import pytest
 
-from .config import nhsd_apim_config
-from .auth_journey import jwt_public_key_url
+# from .config import nhsd_apim_config
+# from .auth_journey import jwt_public_key_url
 
 APIGEE_BASE_URL = "https://api.enterprise.apigee.com/v1/"
 
@@ -22,7 +22,7 @@ APIGEE_BASE_URL = "https://api.enterprise.apigee.com/v1/"
 @pytest.fixture(scope="session")
 def _apigee_edge_session(nhsd_apim_config):
     """
-    A requests session with the correct auth header.
+    A `requests` session with the correct auth header.
     """
     token = nhsd_apim_config["APIGEE_ACCESS_TOKEN"]
     session = requests.session()
@@ -46,7 +46,7 @@ def _apigee_app_base_url(nhsd_apim_config):
 @functools.lru_cache(maxsize=None)
 def _get_proxy_json(session, proxy_base_url):
     """
-    Query the apigee edge API to get data about the desired proxy, in particular it's current deployment.
+    Query the apigee edge API to get data about the desired proxy, in particular its current deployment.
     """
     deployment_resp = session.get(proxy_base_url + "/deployments")
     deployment_json = deployment_resp.json()
@@ -70,7 +70,7 @@ def _get_proxy_json(session, proxy_base_url):
 
 @pytest.fixture()
 def _identity_service_proxy(
-    _apigee_edge_session, nhsd_apim_config, _identity_service_proxy_name
+        _apigee_edge_session, nhsd_apim_config, _identity_service_proxy_name
 ):
     """
     Get the current revision deployed and pull proxy metadata.
@@ -191,7 +191,7 @@ def _identity_service_proxy_name(_identity_service_proxy_names):
 
     # prefer one with "mock" in the name.
     keycloak = next(
-        filter(lambda name: not "-mock" in name, _identity_service_proxy_names), None
+        filter(lambda name: "-mock" not in name, _identity_service_proxy_names), None
     )
     if keycloak:
         return keycloak
@@ -206,7 +206,7 @@ def _proxy_product_with_scope(_scope, _proxy_products, _proxy_name):
     pytest.marker.product_scope fixture.
 
     If the required _scope is None then just returns the first
-    product.  Otherwise finds a product that has the required scope.
+    product.  Otherwise, finds a product that has the required scope.
 
     Raises an exception if there are no matches.
 
@@ -230,12 +230,13 @@ def test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Ca
     """
     A Callable that gets you the current state of the test app.
     """
+
     # pytest fixtures are wonderful, and do lots of magical things.
     #
     # But...
     #
     # In any well developed pytest extension, one ends up with a
-    # complicated dependency graph of fixtures calling fixtures
+    # complicated dependency graph of fixtures calling other fixtures
     # calling fixtures. In some of these fixtures we want the
     # "current-state" of our app. But some fixtures we want to update
     # the state of the app. Which fixture gets called first?
@@ -243,10 +244,10 @@ def test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Ca
     #
     # As much as I love pytest-provided caching, it's safest to let
     # Apigee be the sole arbiter of the current state of our test app
-    # at the cost of an API call.  Therefore I'm returning a callable
+    # at the cost of an API call.  Therefore, I'm returning a callable
     # rather than JSON from this fixture.
     #
-    # In any case, if we get the higher level abstrations right in
+    # In any case, if we get the higher level abstractions right in
     # this pytest-extension, a run-of-the-mill user won't need to know
     # much about the app at all, they will just have credentials to
     # call their api.
@@ -261,11 +262,11 @@ def test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Ca
 
 @pytest.fixture()
 def _test_app_credentials(
-    _apigee_app_base_url,
-    _apigee_edge_session,
-    test_app,
-    _scope,
-    _proxy_product_with_scope,
+        _apigee_app_base_url,
+        _apigee_edge_session,
+        test_app,
+        _scope,
+        _proxy_product_with_scope,
 ):
     def get_matching_creds(app):
         def approved(x):
@@ -274,9 +275,7 @@ def _test_app_credentials(
         now = int(1000 * datetime.utcnow().timestamp())
         for creds in filter(approved, app["credentials"]):
             if creds["expiresAt"] == -1 or now < creds["expiresAt"]:
-                approved_product_names = [
-                    p["apiproduct"] for p in filter(approved, creds["apiProducts"])
-                ]
+                approved_product_names = [p["apiproduct"] for p in filter(approved, creds["apiProducts"])]
                 if _proxy_product_with_scope["name"] in approved_product_names:
                     return creds
 
@@ -285,7 +284,7 @@ def _test_app_credentials(
     if matching_creds is not None:
         return matching_creds
 
-    # If we get here, there are not credentials on our test_app,
+    # If we get here, there are no credentials on our test_app,
     # which have access to the EXACT set of desired products requested
     # by the user. So, we use the apigee edge api to add another set
     # of credentials:

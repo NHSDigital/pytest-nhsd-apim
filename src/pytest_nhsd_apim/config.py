@@ -31,7 +31,7 @@ _PYTEST_CONFIG = {
         "help": "Key ID ('kid') to select particular key.",
         "default": "test-1",
     },
-    ## TODO: Add these if the user wishes...
+    # TODO: Add these if the user wishes...
     # "--jwt-public-key-url": {
     #     "help": "URL of JWT public key. Must be used with --jwt-private-key-file.",
     #     "default": None
@@ -102,5 +102,3 @@ def nhsd_apim_config(request):
         )
     
     return {_flag_to_dest(flag): _get_config(flag) for flag in _PYTEST_CONFIG}
-
-

@@ -43,7 +43,6 @@ def test_app_apikey_fails_with_invalid_product(apikey):
     assert resp.status_code == 401
 
 
-
 @pytest.mark.product_scope("urn:nhsd:apim:user-nhs-id:aal3:hello-world")
 def test_products_subscribe_to_two_identity_services(_identity_service_proxy_names):
     assert len(_identity_service_proxy_names) == 2
@@ -77,6 +76,7 @@ def test_access_token3(proxy_base_url, access_token):
     )
     assert resp.status_code == 200
     assert "Hello User" in resp.text
+
 
 @pytest.mark.product_scope("urn:nhsd:apim:app:level3:hello-world")
 def test_access_token4(proxy_base_url, access_token):

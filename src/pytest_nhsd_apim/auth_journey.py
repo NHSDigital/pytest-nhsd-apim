@@ -2,7 +2,6 @@ import json
 import base64
 from typing import Optional, Dict
 from urllib.parse import urlparse, parse_qs
-import pathlib
 from time import time
 import uuid
 from functools import lru_cache
@@ -14,7 +13,7 @@ import jwt  # https://github.com/jpadilla/pyjwt
 from authlib.jose import jwk
 from Crypto.PublicKey import RSA
 
-from .config import nhsd_apim_config
+# from .config import nhsd_apim_config
 
 
 _SESSION = requests.session()
@@ -28,7 +27,7 @@ def _insert_into_cache(client_id,
     if "issued_at" not in token:
         # only present on app-restricted tokens.
         # we can inject this ourselves
-        token["issued_at"] = time() - 5000 # assume 5 seconds ago, probably was more recently
+        token["issued_at"] = time() - 5000  # assume 5 seconds ago, probably was more recently
     cache[client_id] = token
 
 
@@ -67,7 +66,7 @@ def get_access_token_via_user_restricted_flow(
     if cached_token:
         return cached_token
 
-    # 1. Hit the authorize endpoint w/ required query params --> we
+    # 1. Hit `authorize` endpoint w/ required query params --> we
     # are redirected to the simulated_auth page. The requests package
     # follows those redirects.
     authorize_url = f"{identity_service_base_url}/authorize"
@@ -85,7 +84,7 @@ def get_access_token_via_user_restricted_flow(
             f"{authorize_url} request returned {resp.status_code}: {resp.text}"
         )
 
-    # 2. Parse simulated_auth login page. IRL you'd need to login with
+    # 2. Parse simulated_auth login page. IRL you'd need to log in with
     # some credentials here, but no such hassle on the simulated_auth
     # page.
     html_str = resp.content.decode()
@@ -106,7 +105,7 @@ def get_access_token_via_user_restricted_flow(
         form_submission_data[name] = value
 
     # And here we inject a valid mock username for keycloak.
-    # For reference the valid mock uesrnames are...
+    # For reference the valid mock usernames are...
     # 656005750104 	surekha.kommareddy@nhs.net
     # 656005750105 	darren.mcdrew@nhs.net
     # 656005750106 	riley.jones@nhs.net
@@ -177,7 +176,7 @@ def get_access_token_via_signed_jwt_flow(
         "iss": client_id,
         "jti": str(uuid.uuid4()),
         "aud": url,
-        "exp": int(time()) + 300,  # 5 mins in the future
+        "exp": int(time()) + 300,  # 5 minutes in the future
     }
 
     additional_headers = {"kid": jwt_kid}
