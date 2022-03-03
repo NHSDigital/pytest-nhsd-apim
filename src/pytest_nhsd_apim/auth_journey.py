@@ -49,7 +49,7 @@ def _check_cache(
     if now_ish < int(old_token["issued_at"]) + 1000*int(old_token["expires_in"]):
         return old_token["access_token"]
 
-# https://api.enterprise.apigee.com/v1/organizations/nhsd-nonprod/apiproducts
+
 def get_access_token_via_user_restricted_flow(identity_service_base_url: str,
                                               client_id: str,
                                               client_secret: str,
