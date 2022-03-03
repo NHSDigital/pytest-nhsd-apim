@@ -8,9 +8,12 @@ This module defines all the pytest config.
 And a few fixtures to pull that config in.
 """
 import os
+from datetime import datetime
 
 import pytest
+import logging
 
+LOG = logging.getLogger(__name__)
 
 _PYTEST_CONFIG = {
     "--apigee-proxy-name": {
@@ -74,10 +77,14 @@ def pytest_configure(config):
     """
     Hook for defining markers.
     """
+    marker_descr = "Marker to indicate a required scope when selecting a product to register our test application to."
     config.addinivalue_line(
         "markers",
-        "product_scope(scope): Marker to indicate a required scope when selecting a product to register our test application to",
-    )
+        f"product_scope(scope): {marker_descr}")
+
+    if not config.option.log_file:
+        timestamp = datetime.strftime(datetime.now(), '%Y%m%d_%H%M%S')
+        config.option.log_file = f'../logs/pytest_nhsd_apim_{timestamp}.log'
 
 
 @pytest.fixture(scope="session")
@@ -96,9 +103,7 @@ def nhsd_apim_config(request):
         env_var_value = os.environ.get(name)
         if env_var_value is not None:
             return env_var_value
-
-        raise ValueError(
-            f"Missing required config. You must pass cli option {flag} or environment variable {name}."
-        )
+        ve_msg = f"Missing required config. You must pass cli option {flag} or environment variable {name}."
+        raise ValueError(ve_msg)
     
     return {_flag_to_dest(flag): _get_config(flag) for flag in _PYTEST_CONFIG}
