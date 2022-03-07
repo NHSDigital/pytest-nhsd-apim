@@ -4,6 +4,12 @@ jobs:
   integration-tests:
     runs-on: ubuntu-latest
     steps:
+      - name: Install get_token
+        run: |
+          curl https://login.apigee.com/resources/scripts/sso-cli/ssocli-bundle.zip -O
+          unzip ssocli-bundle.zip
+          ./get_token -h
+
       - name: Checkout current branch
         uses: actions/checkout@v3
 
