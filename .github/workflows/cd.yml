@@ -1,0 +1,31 @@
+name: Release
+on:
+  push:
+    branches:
+      - main
+jobs:
+  publish-to-test-pypi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v3
+
+      - name: Install Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: install deps
+        run: make install-deps
+
+      - name: install twine
+        run: pip install --upgrade pip && pip install twine
+
+      - name: build
+        run: make build
+
+      - name: check build
+        run: twine check dist/*
+
+      - name: publish
+        run: twine upload dist/* -u ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }} --non-interactive

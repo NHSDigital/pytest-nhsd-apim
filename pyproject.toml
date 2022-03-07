@@ -1,21 +1,22 @@
 [tool.poetry]
 name = "pytest-nhsd-apim"
-version = "0.1.0"
+version = "0.1.1"
 description = "Test your NHSD APIM proxy"
-authors = ["Ben Strutt <ben.strutt1@nhs.net>"]
+authors = ["Ben Strutt <ben.strutt1@nhs.net>", "Adrian Ciobanita <adrian.ciobanita1@nhs.net>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
 setuptools = "^60.5.0"
+pytest = "^6.2.5"
 requests = "^2.27.1"
 lxml = "^4.7.1"
 PyJWT = "^2.3.0"
 cryptography = "^36.0.1"
 pycryptodome = "^3.13.0"
 Authlib = "^0.15.5"
+pyotp = "^2.6.0"
 
 [tool.poetry.dev-dependencies]
-pytest_nhsd_apim = { git = "https://github.com/NHSDigital/pytest-nhsd-apim/tree/APM2928_publish_test_utils_v2" }
 
 [tool.pytest.ini_options]
 log_cli = true

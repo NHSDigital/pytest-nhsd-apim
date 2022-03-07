@@ -61,9 +61,7 @@ def test_access_token(proxy_base_url, access_token):
     LOG.info(f'test_access_token:: {access_token}')
     resp = requests.get(proxy_base_url + "/test-auth/app/level3",
                         headers={"Authorization": f"Bearer {access_token}"})
-    response = resp.json()
     assert resp.status_code == 200
-    assert response['content'] == 'sunny', f"Failed to check content. Response was: {response}"
 
 
 @pytest.mark.product_scope("urn:nhsd:apim:user-nhs-cis2:aal3:mock-jwks", login_method='N3_SMARTCARD')  # N3_SMARTCARD
