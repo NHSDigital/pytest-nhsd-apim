@@ -3,23 +3,13 @@
 A pytest extension for NHSDigital's API Mangement suite.
 
 ## Installation
-- activate or create a new virtual environment, as needed
+In your project's virtual environment
 ```code()
-python -m venv <virtual_env_name_dir> # create virtual environment
-source <virtual_env_name_dir>/bin/activate # activate virtual environment
+poetry add pytest-nhsd-apim
 ```
-- install poetry, pytest
+or if using pip directly
 ```code()
-python -m pip install poetry, pytest 
-```
-- run poetry install to install dependencies (thought the setuptools would take care of it)
-```code()
-python -m poetry install 
-```
-- make build or install plugin from GitHub?
-```code()
-make build # OR
-python -m pip install <release from github repo>?
+python -m pip install pytest-nhsd-apim
 ```
 
 ## Usage
@@ -33,6 +23,6 @@ python -m pip install <release from github repo>?
 - run `make test` to run test examples, located in this repo
 - after creating your file you can use the plugin as:
 ```code()
-python -m pytest -p pytest_nhsd_apim test_nhsd_apim.py -s --apigee-proxy-name=mock-jwks-pr-2
+python -m pytest -p pytest_nhsd_apim test_nhsd_apim.py -s --apigee-proxy-name=<your-proxy-name>
 ```
 

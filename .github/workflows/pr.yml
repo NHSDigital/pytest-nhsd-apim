@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: install
-        run: make install-deps build
+        run: make install-deps build-install
 
       - name: get otp
         id: otp
@@ -32,6 +32,7 @@ jobs:
 
       - name: test
         run: APIGEE_ACCESS_TOKEN=${{ steps.apigee.outputs.token }} make test
+
 
   check-version-bump:
     runs-on: ubuntu-latest
