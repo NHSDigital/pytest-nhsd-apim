@@ -2,11 +2,12 @@
 name = "pytest-nhsd-apim"
 version = "0.1.1"
 description = "Test your NHSD APIM proxy"
-authors = ["Ben Strutt <ben.strutt1@nhs.net>"]
+authors = ["Ben Strutt <ben.strutt1@nhs.net>", "Adrian Ciobanita <adrian.ciobanita1@nhs.net>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
 setuptools = "^60.5.0"
+pytest = "^6.2.5"
 requests = "^2.27.1"
 lxml = "^4.7.1"
 PyJWT = "^2.3.0"

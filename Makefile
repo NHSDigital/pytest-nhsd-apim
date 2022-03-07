@@ -1,11 +1,16 @@
-.PHONY: build clean test
+.PHONY: build clean test install
 
-build:
-	@poetry run python setup.py install 2>/dev/null >/dev/null
+install-deps:
+	@pip install --upgrade pip
+	@pip install poetry
+	@poetry install
+
+build: # also installs it locally
+	@poetry run python setup.py install
 
 clean:
 	@rm -rf build dist
 
-test: build clean
-	@pytest tests/test_examples.py -s --apigee-proxy-name=hello-world-internal-dev
+test:
+	@poetry run pytest tests/test_examples.py -s --apigee-proxy-name=mock-jwks-pr-2
 
