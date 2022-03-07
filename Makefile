@@ -12,5 +12,5 @@ clean:
 	@rm -rf build dist
 
 test:
-	@poetry run pytest tests/test_examples.py -s --apigee-proxy-name=mock-jwks-pr-2
+	@poetry run pytest tests/test_examples.py -s --apigee-proxy-name=mock-jwks-internal-dev
 

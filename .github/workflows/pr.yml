@@ -3,21 +3,35 @@ on: pull_request
 jobs:
   integration-tests:
     runs-on: ubuntu-latest
+    env:
+      APIGEE_USERNAME: ${{ secrets.APIGEE_USERNAME }}
+      APIGEE_PASSWORD: ${{ secrets.APIGEE_PASSWORD }}
+      APIGEE_OTP_KEY: ${{ secrets.APIGEE_OTP_KEY }}
     steps:
-      - name: Install get_token
-        run: |
-          curl https://login.apigee.com/resources/scripts/sso-cli/ssocli-bundle.zip -O
-          unzip ssocli-bundle.zip
-          ./get_token -h
-
       - name: Checkout current branch
         uses: actions/checkout@v3
 
       - name: install
         run: make install-deps build
 
+      - name: get otp
+        id: otp
+        run: echo ::set-output name=key::$(poetry run python scripts/otp.py ${APIGEE_USERNAME} ${APIGEE_OTP_KEY})
+
+
+      - name: Install get_token
+        run: |
+          curl https://login.apigee.com/resources/scripts/sso-cli/ssocli-bundle.zip -O
+          unzip ssocli-bundle.zip
+
+      - name: Get APIGEE access token
+        id: apigee
+        run: |
+          echo ::add-mask $(SSO_LOGIN_URL=https://login.apigee.com ./get_token -u ${APIGEE_USERNAME}:${APIGEE_PASSWORD} -m ${{ steps.otp.outputs.key }})
+          echo ::set-output name=token::$(SSO_LOGIN_URL=https://login.apigee.com ./get_token -u ${APIGEE_USERNAME}:${APIGEE_PASSWORD} -m ${{ steps.otp.outputs.key }})
+
       - name: test
-        run: make test
+        run: APIGEE_ACCESS_TOKEN=${{ steps.apigee.outputs.token }} make test
 
   check-version-bump:
     runs-on: ubuntu-latest
