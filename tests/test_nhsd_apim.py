@@ -16,7 +16,7 @@ def test_examples(testdir):
     #     '*::test_sth PASSED*',
     # ])
 
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
 
@@ -29,5 +29,5 @@ def test_internal_fixtures(testdir):
         "-vv",
         "-s",
     )
-    # make sure that that we get a '0' exit code for the testsuite
+    # make sure that we get a '0' exit code for the testsuite
     assert result.ret == 0

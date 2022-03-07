@@ -8,7 +8,7 @@ def pyproject_version():
     pyproject_toml = os.path.join(os.path.dirname(__file__), "pyproject.toml")
     with open(pyproject_toml) as f:
         for line in f.readlines():
-            m = re.match('version = "([0-9]\.[0-9]\.[0-9])"', line)
+            m = re.match('version = "([0-9]\\.[0-9]\\.[0-9])"', line)
             if m is not None:
                 return m.group(1)
 

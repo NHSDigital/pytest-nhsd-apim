@@ -5,25 +5,25 @@ This includes app setup/teardown, getting proxy info (proxy-under-test
 + identity-service of choice), getting products, registering them with
 the test app.
 """
+import functools
+from datetime import datetime
 from typing import Callable
 from uuid import uuid4
-from datetime import datetime
-import functools
 
-import requests
+import logging
 import pytest
-
-from .config import nhsd_apim_config
-from .auth_journey import jwt_public_key_url
+import requests
 
 APIGEE_BASE_URL = "https://api.enterprise.apigee.com/v1/"
+LOG = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope="session")
 def _apigee_edge_session(nhsd_apim_config):
     """
-    A requests session with the correct auth header.
+    A `requests` session with the correct auth header.
     """
+    LOG.debug("Get APIGEE Edge session.")
     token = nhsd_apim_config["APIGEE_ACCESS_TOKEN"]
     session = requests.session()
     session.headers = {"Authorization": f"Bearer {token}"}
@@ -46,9 +46,11 @@ def _apigee_app_base_url(nhsd_apim_config):
 @functools.lru_cache(maxsize=None)
 def _get_proxy_json(session, proxy_base_url):
     """
-    Query the apigee edge API to get data about the desired proxy, in particular it's current deployment.
+    Query the apigee edge API to get data about the desired proxy, in particular its current deployment.
     """
-    deployment_resp = session.get(proxy_base_url + "/deployments")
+    deployment_err_msg = "\n\tInvalid Access Token: Ensure APIGEE_ACCESS_TOKEN is valid."
+    deployment_resp = session.get(proxy_base_url + "/deployments", timeout=3)
+    assert deployment_resp.status_code == 200, deployment_err_msg.format(deployment_resp.content)
     deployment_json = deployment_resp.json()
 
     # Should be the case
@@ -61,7 +63,7 @@ def _get_proxy_json(session, proxy_base_url):
         )
     )
     revision = deployed_revision["name"]
-    proxy_resp = session.get(proxy_base_url + f"/revisions/{revision}")
+    proxy_resp = session.get(proxy_base_url + f"/revisions/{revision}", timeout=3)
     assert proxy_resp.status_code == 200
     proxy_json = proxy_resp.json()
     proxy_json["environment"] = deployment_json["environment"][0]["name"]
@@ -70,7 +72,7 @@ def _get_proxy_json(session, proxy_base_url):
 
 @pytest.fixture()
 def _identity_service_proxy(
-    _apigee_edge_session, nhsd_apim_config, _identity_service_proxy_name
+        _apigee_edge_session, nhsd_apim_config, _identity_service_proxy_name
 ):
     """
     Get the current revision deployed and pull proxy metadata.
@@ -117,8 +119,10 @@ def _get_proxy_url(proxy_json):
     env = proxy_json["environment"]
     prefix = "https://"
     if env != "prod":
-        prefix = prefix + f"{env}."
-    return prefix + "api.service.nhs.uk/" + proxy_json["basepaths"][0]
+        prefix += f"{env}."
+    proxy_url = prefix + "api.service.nhs.uk/" + proxy_json["basepaths"][0]
+    LOG.debug(f"proxy_url_is: {proxy_url}")
+    return proxy_url
 
 
 @pytest.fixture(scope="session")
@@ -138,7 +142,7 @@ def identity_service_base_url(_identity_service_proxy):
 
 
 @pytest.fixture()
-def _scope(request):
+def _auth_journey(request):
     """
     Mark your test with a product_scope marker, to ensure that your
     access_token is derived from a product with the correct scope.
@@ -147,21 +151,36 @@ def _scope(request):
     >>> @pytest.mark.product_scope('urn:nhsd:apim:user-nhs-id:aal3:personal-demographics-service')
     >>> def test_application_restricted_access(proxy_url, access_token):
     >>>     resp = requests.get(proxy_url + "/a/path/that/is/application/restricted",
-    >>>                         headers={"Authorization": f"Bearer {access_token}"})
+    >>>                         headers={"Authorization": f"Bearer {access_token}"},
+    >>>                         timeout=3)
     >>>     assert resp.status_code == 200
     """
     marker = request.node.get_closest_marker("product_scope")
     if marker is None:
         return None
     if len(marker.args) < 1:
-        raise ValueError(
-            "pytest.marker.product_scope requires one positional arg 'scope'"
-        )
-    return str(marker.args[0])
+        ve_msg = "pytest.marker.product_scope requires one positional arg 'scope'"
+        raise ValueError(ve_msg)
+    LOG.debug(f"marker_scope_is:: {marker.args}")
+    return {'scope': str(marker.args[0]), **marker.kwargs}
+
+
+@pytest.fixture()
+def _scope(_auth_journey):
+    """
+    Get APIGEE proxy `scope`.
+    """
+    if not isinstance(_auth_journey, type(None)):
+        return _auth_journey.get('scope')
+
+    return
 
 
 @pytest.fixture()
 def _identity_service_proxy_names(_proxy_product_with_scope):
+    """
+    Get a list of `identity-service` proxies for which we can match a given/required APIGEE `scope`.
+    """
     return [
         proxy
         for proxy in _proxy_product_with_scope["proxies"]
@@ -191,7 +210,7 @@ def _identity_service_proxy_name(_identity_service_proxy_names):
 
     # prefer one with "mock" in the name.
     keycloak = next(
-        filter(lambda name: not "-mock" in name, _identity_service_proxy_names), None
+        filter(lambda name: "-mock" not in name, _identity_service_proxy_names), None
     )
     if keycloak:
         return keycloak
@@ -206,7 +225,7 @@ def _proxy_product_with_scope(_scope, _proxy_products, _proxy_name):
     pytest.marker.product_scope fixture.
 
     If the required _scope is None then just returns the first
-    product.  Otherwise finds a product that has the required scope.
+    product. Otherwise, finds a product that has the required scope.
 
     Raises an exception if there are no matches.
 
@@ -220,9 +239,9 @@ def _proxy_product_with_scope(_scope, _proxy_products, _proxy_name):
     for product in _proxy_products:
         if _scope in product["scopes"]:
             return product
-    raise ValueError(
-        f"No product granting access to proxy under test has scope {_scope}"
-    )
+    ve_msg = f"No product granting access to proxy under test has scope `{_scope}`"
+    LOG.error(ve_msg)
+    raise ValueError(ve_msg)
 
 
 @pytest.fixture()
@@ -230,12 +249,13 @@ def test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Ca
     """
     A Callable that gets you the current state of the test app.
     """
+
     # pytest fixtures are wonderful, and do lots of magical things.
     #
     # But...
     #
     # In any well developed pytest extension, one ends up with a
-    # complicated dependency graph of fixtures calling fixtures
+    # complicated dependency graph of fixtures calling other fixtures
     # calling fixtures. In some of these fixtures we want the
     # "current-state" of our app. But some fixtures we want to update
     # the state of the app. Which fixture gets called first?
@@ -243,30 +263,28 @@ def test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Ca
     #
     # As much as I love pytest-provided caching, it's safest to let
     # Apigee be the sole arbiter of the current state of our test app
-    # at the cost of an API call.  Therefore I'm returning a callable
+    # at the cost of an API call.  Therefore, I'm returning a callable
     # rather than JSON from this fixture.
     #
-    # In any case, if we get the higher level abstrations right in
+    # In any case, if we get the higher level abstractions right in
     # this pytest-extension, a run-of-the-mill user won't need to know
     # much about the app at all, they will just have credentials to
     # call their api.
     def app():
-        resp = _apigee_edge_session.get(
-            _apigee_app_base_url + "/" + _create_test_app["name"]
-        )
+        resp = _apigee_edge_session.get(_apigee_app_base_url + "/" + _create_test_app["name"],
+                                        timeout=3)
         return resp.json()
 
     return app
 
 
 @pytest.fixture()
-def _test_app_credentials(
-    _apigee_app_base_url,
-    _apigee_edge_session,
-    test_app,
-    _scope,
-    _proxy_product_with_scope,
-):
+def _test_app_credentials(_apigee_app_base_url, _apigee_edge_session, test_app, _scope, _proxy_product_with_scope):
+    """
+    Get matching credentials for `test_app`, which have access
+    to the EXACT set of desired products requested by the user.
+    """
+
     def get_matching_creds(app):
         def approved(x):
             return x["status"] == "approved"
@@ -274,18 +292,17 @@ def _test_app_credentials(
         now = int(1000 * datetime.utcnow().timestamp())
         for creds in filter(approved, app["credentials"]):
             if creds["expiresAt"] == -1 or now < creds["expiresAt"]:
-                approved_product_names = [
-                    p["apiproduct"] for p in filter(approved, creds["apiProducts"])
-                ]
+                approved_product_names = [p["apiproduct"] for p in filter(approved, creds["apiProducts"])]
                 if _proxy_product_with_scope["name"] in approved_product_names:
                     return creds
 
     current_app_state = test_app()
+    LOG.debug(f"current_app_state: {current_app_state}")
     matching_creds = get_matching_creds(current_app_state)
     if matching_creds is not None:
         return matching_creds
-
-    # If we get here, there are not credentials on our test_app,
+    LOG.debug(f"matching_creds: {matching_creds}")
+    # If we get here, there are no credentials on our test_app,
     # which have access to the EXACT set of desired products requested
     # by the user. So, we use the apigee edge api to add another set
     # of credentials:
@@ -295,9 +312,7 @@ def _test_app_credentials(
     app_url = _apigee_app_base_url + "/" + current_app_state["name"]
     resp = _apigee_edge_session.put(app_url, json=current_app_state)
     if resp.status_code != 200:
-        raise ValueError(
-            f"Unexpected response from {app_url}: {resp.status_code}, {resp.text}"
-        )
+        raise ValueError(f"Unexpected response from {app_url}: {resp.status_code}, {resp.text}")
 
     current_app_state = resp.json()
     matching_creds = get_matching_creds(current_app_state)
@@ -306,6 +321,9 @@ def _test_app_credentials(
 
 @pytest.fixture(scope="session")
 def _apigee_edge_session(nhsd_apim_config):
+    """
+    Create an APIGEE `requests` session.
+    """
     token = nhsd_apim_config["APIGEE_ACCESS_TOKEN"]
     session = requests.session()
     session.headers = {"Authorization": f"Bearer {token}"}
@@ -314,13 +332,17 @@ def _apigee_edge_session(nhsd_apim_config):
 
 @pytest.fixture(scope="session")
 def _apigee_products(_apigee_edge_session, nhsd_apim_config):
+    """
+    Get ALL products associated with our proxy.
+    """
     got_all_products = False
     org = nhsd_apim_config["APIGEE_ORGANIZATION"]
     products_url = APIGEE_BASE_URL + f"organizations/{org}/apiproducts"
+    LOG.debug(f'products_url_is:: {products_url}')
     params = {"expand": "true"}
     products = []
     while not got_all_products:
-        resp = _apigee_edge_session.get(products_url, params=params)
+        resp = _apigee_edge_session.get(products_url, params=params, timeout=3)
         new_products = resp.json()["apiProduct"]
         products.extend(new_products)
         if len(new_products) == 1000:
@@ -328,6 +350,8 @@ def _apigee_products(_apigee_edge_session, nhsd_apim_config):
             params.update({"startKey": last["name"]})
         else:
             got_all_products = True
+        LOG.debug(f"new_products_len_is:: {len(new_products)}")
+    LOG.debug(f"apigee_products_is: {products}")
     return products
 
 
@@ -344,17 +368,17 @@ def _create_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_
     for details.
     """
 
-    app = {
-        "name": f"apim-auto-{uuid4()}",
-        "callbackUrl": "https://example.org/callback",
-        "attributes": [{"name": "jwks-resource-url", "value": jwt_public_key_url}],
-    }
-    create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app)
-    assert create_resp.status_code == 201
+    app = {"name": f"apim-auto-{uuid4()}",
+           "callbackUrl": "https://example.org/callback",
+           "attributes": [{"name": "jwks-resource-url", "value": jwt_public_key_url}]}
+    create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app, timeout=2)
+    err_msg = f"Could not CREATE TestApp: `{app['name']}`.\tReason: {create_resp.text}"
+    assert create_resp.status_code == 201, err_msg
 
     yield create_resp.json()
-    delete_resp = _apigee_edge_session.delete(_apigee_app_base_url + "/" + app["name"])
-    assert delete_resp.status_code == 200
+    delete_resp = _apigee_edge_session.delete(_apigee_app_base_url + "/" + app["name"], timeout=2)
+    err_msg = f"Could not DELETE TestApp: `{app['name']}`.\tReason: {delete_resp.text}"
+    assert delete_resp.status_code == 200, err_msg
 
 
 @pytest.fixture(scope="session")
