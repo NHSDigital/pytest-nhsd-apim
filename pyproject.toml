@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytest-nhsd-apim"
-version = "0.1.1"
+version = "1.0.0"
 description = "Test your NHSD APIM proxy"
 authors = ["Ben Strutt <ben.strutt1@nhs.net>", "Adrian Ciobanita <adrian.ciobanita1@nhs.net>"]
 
