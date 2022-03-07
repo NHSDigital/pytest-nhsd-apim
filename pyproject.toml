@@ -16,6 +16,8 @@ pycryptodome = "^3.13.0"
 Authlib = "^0.15.5"
 pyotp = "^2.6.0"
 
+[tool.poetry.dev-dependencies]
+
 [tool.pytest.ini_options]
 log_cli = true
 log_cli_level = "INFO"
