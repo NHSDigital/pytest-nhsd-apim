@@ -10,8 +10,8 @@ from setuptools import setup, find_packages
 
 def _read_file(file_name):
     """
-    Read a file from disk, given it's `file_name`.
-    :param file_name: file name, including extension.
+    Read a file from disk, given it's `file_name`
+    :param file_name: file name, including extension
     :type file_name: str
     :return: file stream
     :rtype: IO stream
@@ -52,7 +52,7 @@ def get_name_and_email(name_and_email_pair):
 
 def get_package_dependencies(toml_dependencies):
     """
-    Read package dependencies from `pyproject.toml`.
+    Read package dependencies from `pyproject.toml`
     :param toml_dependencies: `pyproject.toml` dict containing project dependencies
     :type toml_dependencies: dict
     :return: data needed by setuptools to pass into `install_requires`
