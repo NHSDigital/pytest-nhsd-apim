@@ -58,10 +58,8 @@ def get_package_dependencies(toml_dependencies):
     :return: data needed by setuptools to pass into `install_requires`
     :rtype: list
     """
-    install_requires = []
-    for pkg_name, pkg_version in toml_dependencies.items():
-        if pkg_name != 'python':
-            install_requires.append("{}=={}".format(pkg_name, pkg_version[1:]))
+    install_requires = ["{}=={}".format(pkg_name, pkg_version[1:])
+                        for pkg_name, pkg_version in toml_dependencies.items() if pkg_name != 'python']
 
     return install_requires
 
