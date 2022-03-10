@@ -18,8 +18,6 @@ e.g.:
 import logging
 import pytest
 
-from functools import wraps
-
 # Import HOOKS so pytest runs them.
 from .config import pytest_addoption, pytest_configure, nhsd_apim_config
 
