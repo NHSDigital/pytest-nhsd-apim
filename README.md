@@ -25,4 +25,3 @@ python -m pip install pytest-nhsd-apim
 ```code()
 python -m pytest -p pytest_nhsd_apim test_nhsd_apim.py -s --apigee-proxy-name=<your-proxy-name>
 ```
-

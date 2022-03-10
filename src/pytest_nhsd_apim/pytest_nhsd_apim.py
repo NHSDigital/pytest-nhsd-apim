@@ -16,8 +16,9 @@ e.g.:
       application-restricted.
 """
 import logging
-
 import pytest
+
+from functools import wraps
 
 # Import HOOKS so pytest runs them.
 from .config import pytest_addoption, pytest_configure, nhsd_apim_config
@@ -61,6 +62,8 @@ from .auth_journey import (
 )
 
 LOG = logging.getLogger(__name__)
+LOGIN_METHODS_FOR_CIS2 = ['N3_SMARTCARD', 'FIDO2', 'IOS']
+LOGIN_METHOD_VE_MSG = ve_msg = "`login_method` value must be set to one of the following values: {}"
 
 
 @pytest.fixture()
@@ -97,6 +100,9 @@ def access_token(
             auth_scope = auth_scope.replace('id', 'cis2')
         if 'cis2' in auth_scope and 'aal3' in permission_lvl:
             permission_lvl = _auth_journey.get('login_method', 'N3_SMARTCARD')
+            if permission_lvl not in LOGIN_METHODS_FOR_CIS2:
+                raise ValueError(LOGIN_METHOD_VE_MSG.format(LOGIN_METHODS_FOR_CIS2))
+
         LOG.debug(f'auth_scope is:: {auth_scope} - {permission_lvl}')
         return get_access_token_via_user_restricted_flow(
             identity_service_base_url,
