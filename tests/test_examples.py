@@ -51,9 +51,6 @@ def test_access_token4(proxy_base_url, access_token):
                         headers={"Authorization": f"Bearer {access_token}"})
     assert resp.text == ''
     assert resp.status_code == 200
-    resp = requests.get(proxy_base_url + "/test-auth/nhs-login/P0",
-                        headers={"Authorization": f"Bearer {access_token}"})
-    assert resp.status_code == 200
 
 
 @pytest.mark.product_scope("urn:nhsd:apim:app:level3:mock-jwks")
@@ -84,3 +81,9 @@ def test_access_token_p9(proxy_base_url, access_token):
     resp = requests.get(proxy_base_url + "/test-auth/nhs-login/P0",
                         headers={"Authorization": f"Bearer {access_token}"})
     assert resp.status_code == 200
+
+
+@pytest.mark.xfail(raises=ValueError)
+@pytest.mark.product_scope("urn:nhsd:apim:user-nhs-cis2:aal3:mock-jwks", login_method='random_string')
+def test_wrong_login_method(proxy_base_url, access_token):
+    pass
