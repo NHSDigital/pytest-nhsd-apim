@@ -57,7 +57,7 @@ def pytest_addoption(parser):
 
     Pytest calls this at some point to get command line flags into the
     request.config object.
-    
+
     I also want to be able to define sensitive config, e.g.
     apigee_access_token via environment variables.
     """
@@ -77,14 +77,10 @@ def pytest_configure(config):
     """
     Hook for defining markers.
     """
-    marker_descr = "Marker to indicate a required scope when selecting a product to register our test application to."
     config.addinivalue_line(
         "markers",
-        f"product_scope(scope): {marker_descr}")
-
-    if not config.option.log_file:
-        timestamp = datetime.strftime(datetime.now(), '%Y%m%d_%H%M%S')
-        config.option.log_file = f'../logs/pytest_nhsd_apim_{timestamp}.log'
+        f"nhsd_apim_authorization(api_name, access): Marker to define the authorization journey you want to take to get your access token or apikey.",
+    )
 
 
 @pytest.fixture(scope="session")
@@ -93,6 +89,7 @@ def nhsd_apim_config(request):
     Use this fixture to access this pytest extension's config.
     It checks environment variables as well as the CLI.
     """
+
     def _get_config(flag):
         name = _flag_to_dest(flag)
 
@@ -105,5 +102,5 @@ def nhsd_apim_config(request):
             return env_var_value
         ve_msg = f"Missing required config. You must pass cli option {flag} or environment variable {name}."
         raise ValueError(ve_msg)
-    
+
     return {_flag_to_dest(flag): _get_config(flag) for flag in _PYTEST_CONFIG}
