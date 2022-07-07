@@ -1,89 +1,249 @@
 """
 Example tests that show all the features of pytest_nhsd_apim.
 
-They also serve to test the tests themselves.
+These tests actually work!
 """
 import json
-import logging
 import pytest
 import requests
 
-LOG = logging.getLogger(__name__)
 
+def test_ping_endpoint(proxy_base_url):
+    """
+    Send a request to an open access endpoint.
+    """
 
-def test_ping(proxy_base_url):
-    """
-    Set a request to an open access endpoint.
-    """
+    # The proxy_base_url will return the URL of the proxy under test.
+    # The ping endpoint should have no authentication on it.
+
     resp = requests.get(proxy_base_url + "/_ping")
     assert resp.status_code == 200
     ping_data = json.loads(resp.text)
     assert "version" in ping_data
 
 
-def test_apikey(proxy_base_url, apikey):
+def test_status_endpoint(proxy_base_url, status_endpoint_auth_headers):
     """
-    Ask for an apikey for a product that is subscribed to your proxy.
-    This creates a test app and subscribes it to an appropriate
-    product behind the scenes.
-
-    If there is no such product, the test will fail.
+    Send a request to the _status endpoint, protected by a platform-wide.
     """
-    LOG.info('test_apikey')
-    resp = requests.get(proxy_base_url + "/status-api-key", headers={"apikey": apikey})
+    # The status_endpoint_auth_headers fixture returns a dict like
+    # {"apikey": "thesecretvalue"} Use it to access your proxy's
+    # _status endpoint.
 
+    resp = requests.get(
+        proxy_base_url + "/_status", headers=status_endpoint_auth_headers
+    )
+    status_json = resp.json()
     assert resp.status_code == 200
+    assert status_json["status"] == "pass"
 
 
-def test_app_apikey_fails_with_invalid_product(apikey):
-    LOG.info('test_app_apikey_fails_with_invalid_product')
-    url = "https://sandbox.api.service.nhs.uk/hello-world/hello/application"
-    resp = requests.get(url,
-                        headers={"apikey": apikey},
-                        timeout=2)
-    assert resp.status_code == 401
+# Use the pytest.mark.nhsd_apim_authorization fixture automate the
+# hassle of getting valid access tokens and/or API keys to access your
+# API.
+@pytest.mark.nhsd_apim_authorization(
+    {"api_name": "mock-jwks", "access": "application", "level": "level0"}
+)
+def test_app_level0_access(proxy_base_url, nhsd_apim_auth_headers):
+    """
+    Test you have correctly configured an endpoint for application-level0 access.
+    """
+    resp = requests.get(proxy_base_url + "/test-auth/app/level0")
+    assert resp.status_code == 401  # unauthorized
+
+    resp = requests.get(
+        proxy_base_url + "/test-auth/app/level0", headers=nhsd_apim_auth_headers
+    )
+    assert resp.status_code == 200  # authorized
 
 
-@pytest.mark.product_scope("urn:nhsd:apim:user-nhs-login:P0:mock-jwks")
-def test_access_token4(proxy_base_url, access_token):
-    LOG.info(f'test_access_token4:: {access_token}')
-    resp = requests.get(proxy_base_url + "/test-auth/nhs-login/P0",
-                        headers={"Authorization": f"Bearer {access_token}"})
-    assert resp.text == ''
-    assert resp.status_code == 200
+# You can provide arguments as a dict (as above) or keyword-args.
+# With these arguments, you get a public/private key pair, the public
+# key is "hosted" on our mock-jwks proxy, and the
+# nhsd_apim_auth_headers fixture does the signed JWT flow for you.
+@pytest.mark.nhsd_apim_authorization(
+    api_name="mock-jwks", access="application", level="level3"
+)
+def test_app_level3_access(proxy_base_url, nhsd_apim_auth_headers):
+    """
+    Test you have correctly configured an endpoint for application-level3 access.
+    """
+    resp = requests.get(proxy_base_url + "/test-auth/app/level3")
+    assert resp.status_code == 401  # unauthorized
+
+    resp = requests.get(
+        proxy_base_url + "/test-auth/app/level3", headers=nhsd_apim_auth_headers
+    )
+    assert resp.status_code == 200  # authorized
 
 
-@pytest.mark.product_scope("urn:nhsd:apim:app:level3:mock-jwks")
-def test_access_token(proxy_base_url, access_token):
-    LOG.info(f'test_access_token:: {access_token}')
-    resp = requests.get(proxy_base_url + "/test-auth/app/level3",
-                        headers={"Authorization": f"Bearer {access_token}"})
-    assert resp.status_code == 200
+# All the flavours of access tokens you can request via this pytest
+# extension are cached internally. This makes running your tests as
+# fast as possible. In this example you are actually using the same
+# access token as the one you obtained in the previous test!
+@pytest.mark.parametrize(("count"), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+@pytest.mark.nhsd_apim_authorization(
+    {"api_name": "mock-jwks", "access": "application", "level": "level3"}
+)
+def test_app_level3_access_repeatedly(count, nhsd_apim_auth_headers):
+    def th(i):
+        if i == 1:
+            return "st"
+        if i == 2:
+            return "nd"
+        if i == 3:
+            return "rd"
+        return "th"
+
+    print(
+        f"This is the {count}{th(count)} test using the same credentials - {nhsd_apim_auth_headers}"
+    )
 
 
-@pytest.mark.product_scope("urn:nhsd:apim:user-nhs-cis2:aal3:mock-jwks", login_method='N3_SMARTCARD')  # N3_SMARTCARD
-def test_access_token3(proxy_base_url, access_token):
-    LOG.info(f'test_access_token3:: {access_token}')
-    resp = requests.get(proxy_base_url + "/test-auth/nhs-cis2/aal3",
-                        headers={"Authorization": f"Bearer {access_token}"})
-    assert resp.status_code == 200
+# You can include marks in a pytest parametrization to reduce
+# boiler plate. This simple example matches authorization headers to
+# paths and status codes. Once again, access tokens are cached for as
+# long as they are valid so there are no unnecessary calls to the
+# oauth server.
+@pytest.mark.parametrize(
+    ("expected_status_code", "test_path"),
+    [
+        pytest.param(
+            200,
+            "/test-auth/nhs-login/P0",
+            marks=pytest.mark.nhsd_apim_authorization(
+                api_name="mock-jwks",
+                access="patient",
+                level="P0",
+                login_form={"auth_method": "P0"},
+            ),
+        ),
+        pytest.param(
+            403,
+            "/test-auth/nhs-login/P5",
+            marks=pytest.mark.nhsd_apim_authorization(
+                api_name="mock-jwks",
+                access="patient",
+                level="P0",
+                login_form={"auth_method": "P0"},
+            ),
+        ),
+        pytest.param(
+            403,
+            "/test-auth/nhs-login/P9",
+            marks=pytest.mark.nhsd_apim_authorization(
+                api_name="mock-jwks",
+                access="patient",
+                level="P0",
+                login_form={"auth_method": "P0"},
+            ),
+        ),
+        pytest.param(
+            200,
+            "/test-auth/nhs-login/P5",
+            marks=pytest.mark.nhsd_apim_authorization(
+                api_name="mock-jwks",
+                access="patient",
+                level="P5",
+                login_form={"auth_method": "P5"},
+            ),
+        ),
+        pytest.param(
+            403,
+            "/test-auth/nhs-login/P9",
+            marks=pytest.mark.nhsd_apim_authorization(
+                api_name="mock-jwks",
+                access="patient",
+                level="P5",
+                login_form={"auth_method": "P5"},
+            ),
+        ),
+        pytest.param(
+            200,
+            "/test-auth/nhs-login/P9",
+            marks=pytest.mark.nhsd_apim_authorization(
+                api_name="mock-jwks",
+                access="patient",
+                level="P9",
+                login_form={"auth_method": "P9"},
+            ),
+        ),
+    ],
+)
+def test_patient_access_level_with_parametrization(
+    proxy_base_url, expected_status_code, test_path, nhsd_apim_auth_headers
+):
+    """
+    This parametrized test allows us to quickly check that each path
+    gives us an expected status code depending on the details of how
+    we authenticated to get our access token.
+    """
+    resp = requests.get(proxy_base_url + test_path, headers=nhsd_apim_auth_headers)
+    assert resp.status_code == expected_status_code
 
 
-@pytest.mark.product_scope("urn:nhsd:apim:user-nhs-login:P0:mock-jwks")
-def test_access_token_p9(proxy_base_url, access_token):
-    expected_result = {"fault": {"faultstring": "Required scope(s): VerifyAccessToken.NHSLoginP9.scopeSet",
-                                 "detail": {"errorcode": "steps.oauth.v2.InsufficientScope"}}}
-    LOG.info(f'test_access_token:: {access_token}')
-    resp = requests.get(proxy_base_url + "/test-auth/nhs-login/P9",
-                        headers={"Authorization": f"Bearer {access_token}"})
-    assert expected_result == resp.json()
-    assert resp.status_code == 403
-    resp = requests.get(proxy_base_url + "/test-auth/nhs-login/P0",
-                        headers={"Authorization": f"Bearer {access_token}"})
-    assert resp.status_code == 200
+# We are on our second generation of mock identity provider for
+# healthcare_worker access (CIS2). This allows you to log-in using a
+# username.
+MOCK_CIS2_USERNAMES = ["656005750104", "656005750105", "656005750106", "656005750107"]
+
+# You can make the parametrization less verbose by using a function to
+# construct each pytest.param!
+def cis2_aal3_mark(username: str):
+    return pytest.param(
+        marks=pytest.mark.nhsd_apim_authorization(
+            api_name="mock-jwks",
+            access="healthcare_worker",
+            level="aal3",
+            login_form={"username": username},
+        ),
+    )
 
 
-@pytest.mark.xfail(raises=ValueError)
-@pytest.mark.product_scope("urn:nhsd:apim:user-nhs-cis2:aal3:mock-jwks", login_method='random_string')
-def test_wrong_login_method(proxy_base_url, access_token):
-    pass
+# It's getting pretty abstract now, but we're accessing the same
+# endpoint using access tokens granted to four different mock
+# users. Each is a valid mock user with aal3 credentials and so is
+# granted a token we can use.
+@pytest.mark.parametrize(
+    (),
+    [cis2_aal3_mark(username) for username in MOCK_CIS2_USERNAMES],
+)
+def test_healthcare_worker_user_restricted_combined_auth(
+    proxy_base_url, nhsd_apim_auth_headers
+):
+    resp0 = requests.get(proxy_base_url + "/test-auth/nhs-cis2/aal3")
+    assert resp0.status_code == 401
+    resp1 = requests.get(
+        proxy_base_url + "/test-auth/nhs-cis2/aal3", headers=nhsd_apim_auth_headers
+    )
+    assert resp1.status_code == 200
+
+
+# Second generation auth also allows us to simulate separate
+# authentication and authorization, also called "token exchange". In
+# this flow, we authenticate directly with our Mock CIS2 instance, get
+# an ID token, and exchange it via a call to our oauth server for an
+# NHSD APIM access token. From out here, it doesn't look too
+# different. "combined" authentication is the default for this
+# library. To use separate authentication instead, add
+# authentication="separate" to the nhsd_apim_authorization mark.
+@pytest.mark.nhsd_apim_authorization(
+    {
+        "api_name": "mock-jwks",
+        "access": "healthcare_worker",
+        "level": "aal3",
+        "login_form": {"username": "aal3"},
+        "authentication": "separate",
+    }
+)
+def test_healthcare_work_user_restricted_separate_auth(
+    proxy_base_url, nhsd_apim_auth_headers
+):
+    aal3_url = f"{proxy_base_url}/test-auth/nhs-cis2/aal3"
+    resp0 = requests.get(aal3_url)
+    assert resp0.status_code == 401
+    resp1 = requests.get(aal3_url, headers=nhsd_apim_auth_headers)
+    assert resp1.status_code == 200
+
+
+
