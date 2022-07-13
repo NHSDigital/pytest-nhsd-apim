@@ -17,7 +17,8 @@ LOG = logging.getLogger(__name__)
 
 _PYTEST_CONFIG = {
     "--apigee-proxy-name": {
-        "help": "Proxy under test, should exactly match the name on Apigee."
+        "help": "Proxy under test, should exactly match the name on Apigee. If you don't provide this field you must" +
+                " define the environment variable PROXY_NAME_AS_FIXTURE"
     },
     "--apigee-access-token": {
         "help": "Access token to log into apigee edge API, output of get_token"
@@ -100,6 +101,11 @@ def nhsd_apim_config(request):
         env_var_value = os.environ.get(name)
         if env_var_value is not None:
             return env_var_value
+
+        # If proxy name is set as fixture so we can ignore missing values for APIGEE_PROXY_NAME.
+        if flag == "APIGEE_PROXY_NAME" and os.environ.get("PROXY_NAME_AS_FIXTURE"):
+            return env_var_value
+
         ve_msg = f"Missing required config. You must pass cli option {flag} or environment variable {name}."
         raise ValueError(ve_msg)
 

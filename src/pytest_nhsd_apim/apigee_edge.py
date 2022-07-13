@@ -5,6 +5,7 @@ This includes app setup/teardown, getting proxy info (proxy-under-test
 + identity-service of choice), getting products, registering them with
 the test app.
 """
+import os
 import warnings
 import functools
 from datetime import datetime
@@ -386,9 +387,18 @@ def _apigee_products(_apigee_edge_session, nhsd_apim_config):
     return products
 
 
-@pytest.fixture(scope="session")
-@log_method
-def _create_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_url):
+if os.getenv("PROXY_NAME_AS_FIXTURE", False):
+    @pytest.fixture(scope="session")
+    @log_method
+    def _create_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_url, generated_test_proxy):
+            yield from __create_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_url)
+else:
+    @pytest.fixture(scope="session")
+    @log_method
+    def _create_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_url):
+            yield from __create_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_url)
+
+def __create_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_url):
     """
     Create an ephemeral app that lasts the duration of the pytest
     session.
