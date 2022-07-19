@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field, validator
 
 from .log import log, log_method
 
-
 class BaseAuthorization(BaseModel):
     api_name: str
     generation: Literal[1, 2] = 2
@@ -83,9 +82,10 @@ class Authorization(BaseModel):
     ]
 
 
+
 @pytest.fixture()
 @log_method
-def nhsd_apim_authorization(request):
+def nhsd_apim_authorization(request, nhsd_apim_api_name):
     """
     Mark your test with a `nhsd_apim_authorization marker`.
     The call the `nhsd_apim_auth_headers` fixture to access your proxy.
@@ -93,8 +93,8 @@ def nhsd_apim_authorization(request):
     >>> import pytest
     >>> import requests
     >>> @pytest.mark.nhsd_apim_authorization(api_name="mock-jwks", access='healthcare_worker', level="aal3")
-    >>> def test_application_restricted_access(proxy_url, nhsd_apim_auth_header):
-    >>>     resp = requests.get(proxy_url + "/a/path/that/is/application/restricted",
+    >>> def test_application_restricted_access(nhsd_apim_proxy_url, nhsd_apim_auth_header):
+    >>>     resp = requests.get(nhsd_apim_proxy_url + "/a/path/that/is/application/restricted",
     >>>                         headers=nhsd_apim_auth_header
     >>>                         timeout=3)
     >>>     assert resp.status_code == 200
@@ -104,7 +104,14 @@ def nhsd_apim_authorization(request):
         return None
 
     if marker.args:
-        authorization = Authorization(nhsd_apim_authorization=marker.args[0])
+        auth_dict = marker.args[0]
+        print("here")
     else:
-        authorization = Authorization(nhsd_apim_authorization=marker.kwargs)
+        auth_dict = dict(**marker.kwargs)
+
+    # Then use the fixture provided value... i.e. the direct marker
+    # args override the fixture.
+    if "api_name" not in auth_dict:
+        auth_dict["api_name"] = nhsd_apim_api_name
+    authorization = Authorization(nhsd_apim_authorization=auth_dict)
     return authorization.dict()["nhsd_apim_authorization"]

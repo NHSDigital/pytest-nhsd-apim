@@ -17,8 +17,14 @@ e.g.:
 """
 import pytest
 
-# Import HOOKS so pytest runs them.
-from .config import pytest_addoption, pytest_configure, nhsd_apim_config
+# Import HOOKS so pytest runs them + config fixtures
+from .config import (
+    pytest_addoption,
+    pytest_configure,
+    nhsd_apim_config,
+    nhsd_apim_api_name,
+    nhsd_apim_proxy_name,
+)
 
 # Note: At runtime, pytest does not follow the imports we define in
 # our files. Instead, it just looks amongst all the things it found
@@ -26,42 +32,42 @@ from .config import pytest_addoption, pytest_configure, nhsd_apim_config
 # of our fixtures into this module even if they are only called as
 # dependencies of our public fixtures.
 from .apigee_edge import (
-    _apigee_edge_session,
-    _proxy_name,
     _apigee_app_base_url,
-    _apigee_proxy,
-    _proxy_products,
-    _scope,
-    _proxy_product_with_scope,
-    test_app,
-    _test_app_credentials,
+    _apigee_edge_session,
     _apigee_edge_session,
     _apigee_products,
+    _apigee_proxy,
     _create_test_app,
-    _test_app_callback_url,
-    _identity_service_proxy_names,
-    _identity_service_proxy_name,
     _identity_service_proxy,
-    proxy_base_url,
+    _identity_service_proxy_name,
+    _identity_service_proxy_names,
+    _proxy_product_with_scope,
+    _proxy_products,
+    _scope,
+    _test_app_callback_url,
+    _test_app_credentials,
     identity_service_base_url,
+    nhsd_apim_pre_create_app,
+    nhsd_apim_proxy_url,
+    test_app,
 )
 
 from .auth_journey import (
+    _jwt_keys,
+    get_access_token_via_signed_jwt_flow,
     get_access_token_via_user_restricted_flow_combined_auth,
     get_access_token_via_user_restricted_flow_separate_auth,
-    get_access_token_via_signed_jwt_flow,
-    _jwt_keys,
     jwt_private_key_pem,
-    jwt_public_key_pem,
     jwt_public_key,
     jwt_public_key_id,
+    jwt_public_key_pem,
     jwt_public_key_url,
 )
 from .nhsd_apim_authorization import nhsd_apim_authorization
 from .secrets import (
-    status_endpoint_auth_headers,
     _keycloak_client_credentials,
     _mock_jwks_api_key,
+    status_endpoint_auth_headers,
 )
 
 from .log import log, log_method
