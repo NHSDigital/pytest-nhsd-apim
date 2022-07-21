@@ -16,10 +16,12 @@ from .log import log_method
 
 _PYTEST_CONFIG = {
     "--api-name": {
-        "help": "Name of API. Should match the meta/api/name field in your manifest file."
+        "help": "Name of API. Should match the meta/api/name field in your manifest file.",
+        "default": "",  # Must be falsy but not None.
     },
     "--proxy-name": {
-        "help": "Proxy under test, should exactly match the name on Apigee."
+        "help": "Proxy under test, should exactly match the name on Apigee.",
+        "default": "",  # Must be falsy but not None.
     },
     "--apigee-access-token": {
         "help": "Access token to log into apigee edge API, output of get_token"
@@ -116,7 +118,10 @@ def nhsd_apim_api_name(nhsd_apim_config, request):
     marker = request.node.get_closest_marker("nhsd_apim_api_name")
     if marker:
         return marker.args[0]
-    return nhsd_apim_config["API_NAME"]
+    if nhsd_apim_config["API_NAME"]:
+        return nhsd_apim_config["API_NAME"]
+    raise ValueError("API_NAME is not defined.")
+
 
 @pytest.fixture()
 @log_method
@@ -124,5 +129,6 @@ def nhsd_apim_proxy_name(nhsd_apim_config, request):
     marker = request.node.get_closest_marker("nhsd_apim_proxy_name")
     if marker:
         return marker.args[0]
-    return nhsd_apim_config["PROXY_NAME"]
-
+    if nhsd_apim_config["PROXY_NAME"]:
+        return nhsd_apim_config["PROXY_NAME"]
+    raise ValueError("PROXY_NAME is not defined.")

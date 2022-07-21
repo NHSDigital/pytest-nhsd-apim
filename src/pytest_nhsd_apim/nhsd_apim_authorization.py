@@ -105,7 +105,6 @@ def nhsd_apim_authorization(request, nhsd_apim_api_name):
 
     if marker.args:
         auth_dict = marker.args[0]
-        print("here")
     else:
         auth_dict = dict(**marker.kwargs)
 
