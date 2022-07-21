@@ -14,7 +14,6 @@ from uuid import uuid4
 import pytest
 import requests
 
-from .nhsd_apim_authorization import nhsd_apim_authorization
 from .log import log, log_method
 
 APIGEE_BASE_URL = "https://api.enterprise.apigee.com/v1/"
@@ -32,11 +31,6 @@ def _apigee_edge_session(nhsd_apim_config):
     return session
 
 
-@pytest.fixture(scope="session")
-@log_method
-def _proxy_name(nhsd_apim_config):
-    return nhsd_apim_config["APIGEE_PROXY_NAME"]
-
 
 @pytest.fixture(scope="session")
 @log_method
@@ -49,14 +43,14 @@ def _apigee_app_base_url(nhsd_apim_config):
 
 @functools.lru_cache(maxsize=None)
 @log_method
-def _get_proxy_json(session, proxy_base_url):
+def _get_proxy_json(session, nhsd_apim_proxy_url):
     """
     Query the apigee edge API to get data about the desired proxy, in particular its current deployment.
     """
     deployment_err_msg = (
         "\n\tInvalid Access Token: Ensure APIGEE_ACCESS_TOKEN is valid."
     )
-    deployment_resp = session.get(proxy_base_url + "/deployments", timeout=3)
+    deployment_resp = session.get(nhsd_apim_proxy_url + "/deployments", timeout=3)
     assert deployment_resp.status_code == 200, deployment_err_msg.format(
         deployment_resp.content
     )
@@ -72,7 +66,7 @@ def _get_proxy_json(session, proxy_base_url):
         )
     )
     revision = deployed_revision["name"]
-    proxy_resp = session.get(proxy_base_url + f"/revisions/{revision}", timeout=3)
+    proxy_resp = session.get(nhsd_apim_proxy_url + f"/revisions/{revision}", timeout=3)
     assert proxy_resp.status_code == 200
     proxy_json = proxy_resp.json()
     proxy_json["environment"] = deployment_json["environment"][0]["name"]
@@ -91,21 +85,23 @@ def _identity_service_proxy(
     return _get_proxy_json(_apigee_edge_session, url)
 
 
-@pytest.fixture(scope="session")
+
+
+
+@pytest.fixture()
 @log_method
-def _apigee_proxy(_apigee_edge_session, nhsd_apim_config):
+def _apigee_proxy(_apigee_edge_session, nhsd_apim_config, nhsd_apim_proxy_name):
     """
     Get the current revision deployed and pull proxy metadata.
     """
     org = nhsd_apim_config["APIGEE_ORGANIZATION"]
-    proxy_name = nhsd_apim_config["APIGEE_PROXY_NAME"]
-    proxy_base_url = APIGEE_BASE_URL + f"organizations/{org}/apis/{proxy_name}"
-    return _get_proxy_json(_apigee_edge_session, proxy_base_url)
+    apigee_edge_api_proxy_url = APIGEE_BASE_URL + f"organizations/{org}/apis/{nhsd_apim_proxy_name}"
+    return _get_proxy_json(_apigee_edge_session, apigee_edge_api_proxy_url)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 @log_method
-def _proxy_products(_proxy_name, _apigee_products):
+def _proxy_products(nhsd_apim_proxy_name, _apigee_products):
     """
     Find all products that grant access to your proxy (by name).
 
@@ -116,10 +112,10 @@ def _proxy_products(_proxy_name, _apigee_products):
     empty in other fixtures.
     """
     proxy_products = [
-        product for product in _apigee_products if _proxy_name in product["proxies"]
+        product for product in _apigee_products if nhsd_apim_proxy_name in product["proxies"]
     ]
     if len(proxy_products) == 0:
-        raise ValueError(f"No products grant access to proxy {_proxy_name}")
+        raise ValueError(f"No products grant access to proxy {nhsd_apim_proxy_name}")
     return proxy_products
 
 
@@ -136,9 +132,9 @@ def _get_proxy_url(proxy_json):
     return proxy_url
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 @log_method
-def proxy_base_url(_apigee_proxy):
+def nhsd_apim_proxy_url(_apigee_proxy):
     """
     Base URL of the proxy under test.
     """
@@ -224,7 +220,7 @@ def _identity_service_proxy_name(
 
 @pytest.fixture()
 @log_method
-def _proxy_product_with_scope(_scope, _proxy_products, _proxy_name):
+def _proxy_product_with_scope(_scope, _proxy_products, nhsd_apim_proxy_name):
     """
     The first product with a scope matching the one specified by the
     pytest.marker.product_scope fixture.
@@ -387,8 +383,16 @@ def _apigee_products(_apigee_edge_session, nhsd_apim_config):
 
 
 @pytest.fixture(scope="session")
+def nhsd_apim_pre_create_app():
+    """
+    Hook fixture upon which to hang any methods you wish to call prior
+    to creating the test app.
+    """
+    yield
+
+@pytest.fixture(scope="session")
 @log_method
-def _create_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_url):
+def _create_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_url, nhsd_apim_pre_create_app):
     """
     Create an ephemeral app that lasts the duration of the pytest
     session.
@@ -405,13 +409,13 @@ def _create_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_
         "callbackUrl": "https://example.org/callback",
         "attributes": [{"name": "jwks-resource-url", "value": jwt_public_key_url}],
     }
-    create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app, timeout=2)
+    create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app)
     err_msg = f"Could not CREATE TestApp: `{app['name']}`.\tReason: {create_resp.text}"
     assert create_resp.status_code == 201, err_msg
 
     yield create_resp.json()
     delete_resp = _apigee_edge_session.delete(
-        _apigee_app_base_url + "/" + app["name"], timeout=2
+        _apigee_app_base_url + "/" + app["name"]
     )
     err_msg = f"Could not DELETE TestApp: `{app['name']}`.\tReason: {delete_resp.text}"
     assert delete_resp.status_code == 200, err_msg

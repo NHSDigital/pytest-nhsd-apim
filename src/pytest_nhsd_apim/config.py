@@ -11,13 +11,17 @@ import os
 from datetime import datetime
 
 import pytest
-import logging
 
-LOG = logging.getLogger(__name__)
+from .log import log_method
 
 _PYTEST_CONFIG = {
-    "--apigee-proxy-name": {
-        "help": "Proxy under test, should exactly match the name on Apigee."
+    "--api-name": {
+        "help": "Name of API. Should match the meta/api/name field in your manifest file.",
+        "default": "",  # Must be falsy but not None.
+    },
+    "--proxy-name": {
+        "help": "Proxy under test, should exactly match the name on Apigee.",
+        "default": "",  # Must be falsy but not None.
     },
     "--apigee-access-token": {
         "help": "Access token to log into apigee edge API, output of get_token"
@@ -84,6 +88,7 @@ def pytest_configure(config):
 
 
 @pytest.fixture(scope="session")
+@log_method
 def nhsd_apim_config(request):
     """
     Use this fixture to access this pytest extension's config.
@@ -100,7 +105,30 @@ def nhsd_apim_config(request):
         env_var_value = os.environ.get(name)
         if env_var_value is not None:
             return env_var_value
+
         ve_msg = f"Missing required config. You must pass cli option {flag} or environment variable {name}."
         raise ValueError(ve_msg)
 
     return {_flag_to_dest(flag): _get_config(flag) for flag in _PYTEST_CONFIG}
+
+
+@pytest.fixture()
+@log_method
+def nhsd_apim_api_name(nhsd_apim_config, request):
+    marker = request.node.get_closest_marker("nhsd_apim_api_name")
+    if marker:
+        return marker.args[0]
+    if nhsd_apim_config["API_NAME"]:
+        return nhsd_apim_config["API_NAME"]
+    raise ValueError("API_NAME is not defined.")
+
+
+@pytest.fixture()
+@log_method
+def nhsd_apim_proxy_name(nhsd_apim_config, request):
+    marker = request.node.get_closest_marker("nhsd_apim_proxy_name")
+    if marker:
+        return marker.args[0]
+    if nhsd_apim_config["PROXY_NAME"]:
+        return nhsd_apim_config["PROXY_NAME"]
+    raise ValueError("PROXY_NAME is not defined.")
