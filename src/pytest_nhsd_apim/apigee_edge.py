@@ -409,13 +409,13 @@ def _create_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_
         "callbackUrl": "https://example.org/callback",
         "attributes": [{"name": "jwks-resource-url", "value": jwt_public_key_url}],
     }
-    create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app, timeout=2)
+    create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app)
     err_msg = f"Could not CREATE TestApp: `{app['name']}`.\tReason: {create_resp.text}"
     assert create_resp.status_code == 201, err_msg
 
     yield create_resp.json()
     delete_resp = _apigee_edge_session.delete(
-        _apigee_app_base_url + "/" + app["name"], timeout=2
+        _apigee_app_base_url + "/" + app["name"]
     )
     err_msg = f"Could not DELETE TestApp: `{app['name']}`.\tReason: {delete_resp.text}"
     assert delete_resp.status_code == 200, err_msg
