@@ -98,10 +98,29 @@ def _apigee_proxy(_apigee_edge_session, nhsd_apim_config, nhsd_apim_proxy_name):
     apigee_edge_api_proxy_url = APIGEE_BASE_URL + f"organizations/{org}/apis/{nhsd_apim_proxy_name}"
     return _get_proxy_json(_apigee_edge_session, apigee_edge_api_proxy_url)
 
+@log_method
+def get_all_products(_apigee_edge_session, nhsd_apim_config):
+    got_all_products = False
+    org = nhsd_apim_config["APIGEE_ORGANIZATION"]
+    products_url = APIGEE_BASE_URL + f"organizations/{org}/apiproducts"
+    params = {"expand": "true"}
+    products = []
+    while not got_all_products:
+        resp = _apigee_edge_session.get(products_url, params=params, timeout=3)
+        new_products = resp.json()["apiProduct"]
+        products.extend(new_products)
+        if len(new_products) == 1000:
+            last = products.pop()
+            params.update({"startKey": last["name"]})
+        else:
+            got_all_products = True
+    return products
+
+_APIGEE_PRODUCTS = []
 
 @pytest.fixture()
 @log_method
-def _proxy_products(nhsd_apim_proxy_name, _apigee_products):
+def _proxy_products(_apigee_edge_session, nhsd_apim_proxy_name, nhsd_apim_config):
     """
     Find all products that grant access to your proxy (by name).
 
@@ -111,11 +130,21 @@ def _proxy_products(nhsd_apim_proxy_name, _apigee_products):
     This also allows us to skip checking whether the returned list is
     empty in other fixtures.
     """
+    global _APIGEE_PRODUCTS
     proxy_products = [
-        product for product in _apigee_products if nhsd_apim_proxy_name in product["proxies"]
+        product for product in _APIGEE_PRODUCTS if nhsd_apim_proxy_name in product["proxies"]
+    ]
+    
+    if len(proxy_products) == 0:
+        # Refresh the list and try again...
+        _APIGEE_PRODUCTS = get_all_products(_apigee_edge_session, nhsd_apim_config)
+
+    proxy_products = [
+        product for product in _APIGEE_PRODUCTS if nhsd_apim_proxy_name in product["proxies"]
     ]
     if len(proxy_products) == 0:
         raise ValueError(f"No products grant access to proxy {nhsd_apim_proxy_name}")
+
     return proxy_products
 
 
@@ -358,28 +387,6 @@ def _apigee_edge_session(nhsd_apim_config):
     session.headers = {"Authorization": f"Bearer {token}"}
     return session
 
-
-@pytest.fixture(scope="session")
-@log_method
-def _apigee_products(_apigee_edge_session, nhsd_apim_config):
-    """
-    Get ALL products associated with our proxy.
-    """
-    got_all_products = False
-    org = nhsd_apim_config["APIGEE_ORGANIZATION"]
-    products_url = APIGEE_BASE_URL + f"organizations/{org}/apiproducts"
-    params = {"expand": "true"}
-    products = []
-    while not got_all_products:
-        resp = _apigee_edge_session.get(products_url, params=params, timeout=3)
-        new_products = resp.json()["apiProduct"]
-        products.extend(new_products)
-        if len(new_products) == 1000:
-            last = products.pop()
-            params.update({"startKey": last["name"]})
-        else:
-            got_all_products = True
-    return products
 
 
 @pytest.fixture(scope="session")

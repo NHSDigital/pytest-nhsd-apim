@@ -62,7 +62,7 @@ def log_method(f):
         try:
             yield from f(*args, **kwargs)
         except Exception as e:
-            log_and_reraise(e)
+            log_and_reraise(log_line, e)
         post_log(log_line)
 
     @functools.wraps(f)

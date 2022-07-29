@@ -35,7 +35,6 @@ from .apigee_edge import (
     _apigee_app_base_url,
     _apigee_edge_session,
     _apigee_edge_session,
-    _apigee_products,
     _apigee_proxy,
     _create_test_app,
     _identity_service_proxy,
