@@ -101,6 +101,10 @@ def nhsd_apim_authorization(request, nhsd_apim_api_name):
     """
     marker = request.node.get_closest_marker("nhsd_apim_authorization")
     if marker is None:
+        warn("Could not find nhsd_apim_authorization marker. This will result in empty authorization headers. Explicitly set an empty @pytest.mark.nhsd_apim_authorization marker() to silence this warning.")
+        return None
+
+    if not marker.args and not marker.kwargs:
         return None
 
     if marker.args:

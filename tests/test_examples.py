@@ -20,7 +20,6 @@ def test_ping_endpoint(nhsd_apim_proxy_url):
     ping_data = json.loads(resp.text)
     assert "version" in ping_data
 
-
 def test_status_endpoint(nhsd_apim_proxy_url, status_endpoint_auth_headers):
     """
     Send a request to the _status endpoint, protected by a platform-wide.
@@ -229,3 +228,16 @@ def test_healthcare_work_user_restricted_separate_auth(
     assert resp0.status_code == 401
     resp1 = requests.get(aal3_url, headers=nhsd_apim_auth_headers)
     assert resp1.status_code == 200
+
+
+# You can test unauthenticated access with an empty
+# nhsd_apim_authorization marker.  This allows you to parameterize
+# unauthenicated access tests in the same way as authenticated API calls.
+@pytest.mark.nhsd_apim_authorization()
+def test_no_authorization_explicitly_marked(nhsd_apim_proxy_url, nhsd_apim_auth_headers):
+    assert nhsd_apim_auth_headers == {}
+
+# You can also do it without marking, though this raises a warning.
+def test_no_authorization_with_not_explicitly_marked(nhsd_apim_proxy_url, nhsd_apim_auth_headers):
+    assert nhsd_apim_auth_headers == {}
+

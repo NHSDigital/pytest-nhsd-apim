@@ -89,6 +89,10 @@ def nhsd_apim_auth_headers(
     This fixture will examine the @pytest.mark.nhsd_apim_authorization
     on your test and do the rest.
     """
+
+    if nhsd_apim_authorization is None:
+        return {}
+
     access = nhsd_apim_authorization["access"]
     level = nhsd_apim_authorization["level"]
     if access == "application":

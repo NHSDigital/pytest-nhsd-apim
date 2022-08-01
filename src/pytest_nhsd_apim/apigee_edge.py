@@ -80,6 +80,8 @@ def _identity_service_proxy(
     """
     Get the current revision deployed and pull proxy metadata.
     """
+    if not _identity_service_proxy_name:
+        return
     org = nhsd_apim_config["APIGEE_ORGANIZATION"]
     url = APIGEE_BASE_URL + f"organizations/{org}/apis/{_identity_service_proxy_name}"
     return _get_proxy_json(_apigee_edge_session, url)
@@ -176,6 +178,8 @@ def identity_service_base_url(_identity_service_proxy):
     """
     Base URL of the identity-service proxy we will use to authenticate.
     """
+    if _identity_service_proxy is None:
+        return None
     return _get_proxy_url(_identity_service_proxy)
 
 
@@ -225,6 +229,8 @@ def _identity_service_proxy_name(
     never happen.
     """
     if not _identity_service_proxy_names:  # empty list
+        return None
+    if not nhsd_apim_authorization:
         return None
 
     generation = nhsd_apim_authorization["generation"]
