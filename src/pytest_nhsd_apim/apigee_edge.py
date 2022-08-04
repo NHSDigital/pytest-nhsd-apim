@@ -280,6 +280,8 @@ def _proxy_product_with_scope(_scope, _proxy_products, nhsd_apim_proxy_name):
     raise ValueError(error_msg)
 
 
+_TEST_APP = None
+
 @pytest.fixture(scope="session")
 @log_method
 def test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Callable:
@@ -307,11 +309,15 @@ def test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Ca
     # pytest-extension, a run-of-the-mill user won't need to know much
     # about the app at all, they will just have credentials to call
     # their api.
-    def app():
+    def app(force_refresh=False):
+        global _TEST_APP
+        if _TEST_APP and not force_refresh:
+            return _TEST_APP
         resp = _apigee_edge_session.get(
             _apigee_app_base_url + "/" + _create_test_app["name"]
         )
-        return resp.json()
+        _TEST_APP = resp.json()
+        return _TEST_APP
 
     return app
 
@@ -355,8 +361,10 @@ def get_app_credentials_for_product(
         raise ValueError(
             f"Unexpected response from {app_url}: {resp.status_code}, {resp.text}"
         )
-    app = resp.json()
-    matching_creds = get_matching_creds(app, product_name)
+    global _TEST_APP
+    _TEST_APP = resp.json()
+
+    matching_creds = get_matching_creds(_TEST_APP, product_name)
     return matching_creds
 
 
@@ -432,6 +440,8 @@ def _create_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_
     )
     err_msg = f"Could not DELETE TestApp: `{app['name']}`.\tReason: {delete_resp.text}"
     assert delete_resp.status_code == 200, err_msg
+    global _TEST_APP
+    _TEST_APP = None
 
 
 @pytest.fixture(scope="session")

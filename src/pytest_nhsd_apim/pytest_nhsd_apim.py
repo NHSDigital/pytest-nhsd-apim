@@ -67,6 +67,7 @@ from .secrets import (
     _keycloak_client_credentials,
     _mock_jwks_api_key,
     status_endpoint_auth_headers,
+    _status_endpoint_api_key,
 )
 
 from .log import log, log_method
