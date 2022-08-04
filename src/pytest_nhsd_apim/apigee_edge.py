@@ -50,7 +50,7 @@ def _get_proxy_json(session, nhsd_apim_proxy_url):
     deployment_err_msg = (
         "\n\tInvalid Access Token: Ensure APIGEE_ACCESS_TOKEN is valid."
     )
-    deployment_resp = session.get(nhsd_apim_proxy_url + "/deployments", timeout=3)
+    deployment_resp = session.get(nhsd_apim_proxy_url + "/deployments")
     assert deployment_resp.status_code == 200, deployment_err_msg.format(
         deployment_resp.content
     )
@@ -66,7 +66,7 @@ def _get_proxy_json(session, nhsd_apim_proxy_url):
         )
     )
     revision = deployed_revision["name"]
-    proxy_resp = session.get(nhsd_apim_proxy_url + f"/revisions/{revision}", timeout=3)
+    proxy_resp = session.get(nhsd_apim_proxy_url + f"/revisions/{revision}")
     assert proxy_resp.status_code == 200
     proxy_json = proxy_resp.json()
     proxy_json["environment"] = deployment_json["environment"][0]["name"]
@@ -108,7 +108,7 @@ def get_all_products(_apigee_edge_session, nhsd_apim_config):
     params = {"expand": "true"}
     products = []
     while not got_all_products:
-        resp = _apigee_edge_session.get(products_url, params=params, timeout=3)
+        resp = _apigee_edge_session.get(products_url, params=params)
         new_products = resp.json()["apiProduct"]
         products.extend(new_products)
         if len(new_products) == 1000:
@@ -309,7 +309,7 @@ def test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Ca
     # their api.
     def app():
         resp = _apigee_edge_session.get(
-            _apigee_app_base_url + "/" + _create_test_app["name"], timeout=3
+            _apigee_app_base_url + "/" + _create_test_app["name"]
         )
         return resp.json()
 
