@@ -50,7 +50,7 @@ def _get_proxy_json(session, nhsd_apim_proxy_url):
     deployment_err_msg = (
         "\n\tInvalid Access Token: Ensure APIGEE_ACCESS_TOKEN is valid."
     )
-    deployment_resp = session.get(nhsd_apim_proxy_url + "/deployments", timeout=3)
+    deployment_resp = session.get(nhsd_apim_proxy_url + "/deployments")
     assert deployment_resp.status_code == 200, deployment_err_msg.format(
         deployment_resp.content
     )
@@ -66,7 +66,7 @@ def _get_proxy_json(session, nhsd_apim_proxy_url):
         )
     )
     revision = deployed_revision["name"]
-    proxy_resp = session.get(nhsd_apim_proxy_url + f"/revisions/{revision}", timeout=3)
+    proxy_resp = session.get(nhsd_apim_proxy_url + f"/revisions/{revision}")
     assert proxy_resp.status_code == 200
     proxy_json = proxy_resp.json()
     proxy_json["environment"] = deployment_json["environment"][0]["name"]
@@ -80,6 +80,8 @@ def _identity_service_proxy(
     """
     Get the current revision deployed and pull proxy metadata.
     """
+    if not _identity_service_proxy_name:
+        return
     org = nhsd_apim_config["APIGEE_ORGANIZATION"]
     url = APIGEE_BASE_URL + f"organizations/{org}/apis/{_identity_service_proxy_name}"
     return _get_proxy_json(_apigee_edge_session, url)
@@ -98,10 +100,29 @@ def _apigee_proxy(_apigee_edge_session, nhsd_apim_config, nhsd_apim_proxy_name):
     apigee_edge_api_proxy_url = APIGEE_BASE_URL + f"organizations/{org}/apis/{nhsd_apim_proxy_name}"
     return _get_proxy_json(_apigee_edge_session, apigee_edge_api_proxy_url)
 
+@log_method
+def get_all_products(_apigee_edge_session, nhsd_apim_config):
+    got_all_products = False
+    org = nhsd_apim_config["APIGEE_ORGANIZATION"]
+    products_url = APIGEE_BASE_URL + f"organizations/{org}/apiproducts"
+    params = {"expand": "true"}
+    products = []
+    while not got_all_products:
+        resp = _apigee_edge_session.get(products_url, params=params)
+        new_products = resp.json()["apiProduct"]
+        products.extend(new_products)
+        if len(new_products) == 1000:
+            last = products.pop()
+            params.update({"startKey": last["name"]})
+        else:
+            got_all_products = True
+    return products
+
+_APIGEE_PRODUCTS = []
 
 @pytest.fixture()
 @log_method
-def _proxy_products(nhsd_apim_proxy_name, _apigee_products):
+def _proxy_products(_apigee_edge_session, nhsd_apim_proxy_name, nhsd_apim_config):
     """
     Find all products that grant access to your proxy (by name).
 
@@ -111,11 +132,21 @@ def _proxy_products(nhsd_apim_proxy_name, _apigee_products):
     This also allows us to skip checking whether the returned list is
     empty in other fixtures.
     """
+    global _APIGEE_PRODUCTS
     proxy_products = [
-        product for product in _apigee_products if nhsd_apim_proxy_name in product["proxies"]
+        product for product in _APIGEE_PRODUCTS if nhsd_apim_proxy_name in product["proxies"]
+    ]
+    
+    if len(proxy_products) == 0:
+        # Refresh the list and try again...
+        _APIGEE_PRODUCTS = get_all_products(_apigee_edge_session, nhsd_apim_config)
+
+    proxy_products = [
+        product for product in _APIGEE_PRODUCTS if nhsd_apim_proxy_name in product["proxies"]
     ]
     if len(proxy_products) == 0:
         raise ValueError(f"No products grant access to proxy {nhsd_apim_proxy_name}")
+
     return proxy_products
 
 
@@ -147,6 +178,8 @@ def identity_service_base_url(_identity_service_proxy):
     """
     Base URL of the identity-service proxy we will use to authenticate.
     """
+    if _identity_service_proxy is None:
+        return None
     return _get_proxy_url(_identity_service_proxy)
 
 
@@ -197,6 +230,8 @@ def _identity_service_proxy_name(
     """
     if not _identity_service_proxy_names:  # empty list
         return None
+    if not nhsd_apim_authorization:
+        return None
 
     generation = nhsd_apim_authorization["generation"]
     if generation == 1:  # prefer one without "mock" in the name.
@@ -245,6 +280,8 @@ def _proxy_product_with_scope(_scope, _proxy_products, nhsd_apim_proxy_name):
     raise ValueError(error_msg)
 
 
+_TEST_APP = None
+
 @pytest.fixture(scope="session")
 @log_method
 def test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Callable:
@@ -272,11 +309,15 @@ def test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Ca
     # pytest-extension, a run-of-the-mill user won't need to know much
     # about the app at all, they will just have credentials to call
     # their api.
-    def app():
+    def app(force_refresh=False):
+        global _TEST_APP
+        if _TEST_APP and not force_refresh:
+            return _TEST_APP
         resp = _apigee_edge_session.get(
-            _apigee_app_base_url + "/" + _create_test_app["name"], timeout=3
+            _apigee_app_base_url + "/" + _create_test_app["name"]
         )
-        return resp.json()
+        _TEST_APP = resp.json()
+        return _TEST_APP
 
     return app
 
@@ -320,8 +361,10 @@ def get_app_credentials_for_product(
         raise ValueError(
             f"Unexpected response from {app_url}: {resp.status_code}, {resp.text}"
         )
-    app = resp.json()
-    matching_creds = get_matching_creds(app, product_name)
+    global _TEST_APP
+    _TEST_APP = resp.json()
+
+    matching_creds = get_matching_creds(_TEST_APP, product_name)
     return matching_creds
 
 
@@ -358,28 +401,6 @@ def _apigee_edge_session(nhsd_apim_config):
     session.headers = {"Authorization": f"Bearer {token}"}
     return session
 
-
-@pytest.fixture(scope="session")
-@log_method
-def _apigee_products(_apigee_edge_session, nhsd_apim_config):
-    """
-    Get ALL products associated with our proxy.
-    """
-    got_all_products = False
-    org = nhsd_apim_config["APIGEE_ORGANIZATION"]
-    products_url = APIGEE_BASE_URL + f"organizations/{org}/apiproducts"
-    params = {"expand": "true"}
-    products = []
-    while not got_all_products:
-        resp = _apigee_edge_session.get(products_url, params=params, timeout=3)
-        new_products = resp.json()["apiProduct"]
-        products.extend(new_products)
-        if len(new_products) == 1000:
-            last = products.pop()
-            params.update({"startKey": last["name"]})
-        else:
-            got_all_products = True
-    return products
 
 
 @pytest.fixture(scope="session")
@@ -419,6 +440,8 @@ def _create_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_
     )
     err_msg = f"Could not DELETE TestApp: `{app['name']}`.\tReason: {delete_resp.text}"
     assert delete_resp.status_code == 200, err_msg
+    global _TEST_APP
+    _TEST_APP = None
 
 
 @pytest.fixture(scope="session")

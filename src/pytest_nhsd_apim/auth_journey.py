@@ -194,7 +194,6 @@ def get_access_token_via_user_restricted_flow_combined_auth(
             "client_id": client_id,
             "client_secret": client_secret,
         },
-        timeout=3,
     )
     resp.raise_for_status()
 
@@ -260,7 +259,6 @@ def get_access_token_via_signed_jwt_flow(
     resp = requests.post(
         url,
         data=data,
-        timeout=3,
     )
     if resp.status_code != 200:
         raise RuntimeError(f"{resp.status_code}: {resp.text}")
@@ -352,7 +350,6 @@ def get_authorize_endpoint_response(
             "scope": auth_scope,
             "state": "1234567890",
         },
-        timeout=3,
     )
     if resp.status_code != 200:
         raise RuntimeError(

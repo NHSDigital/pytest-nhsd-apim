@@ -95,12 +95,15 @@ def nhsd_apim_authorization(request, nhsd_apim_api_name):
     >>> @pytest.mark.nhsd_apim_authorization(api_name="mock-jwks", access='healthcare_worker', level="aal3")
     >>> def test_application_restricted_access(nhsd_apim_proxy_url, nhsd_apim_auth_header):
     >>>     resp = requests.get(nhsd_apim_proxy_url + "/a/path/that/is/application/restricted",
-    >>>                         headers=nhsd_apim_auth_header
-    >>>                         timeout=3)
+    >>>                         headers=nhsd_apim_auth_header)
     >>>     assert resp.status_code == 200
     """
     marker = request.node.get_closest_marker("nhsd_apim_authorization")
     if marker is None:
+        warn("Could not find nhsd_apim_authorization marker. This will result in empty authorization headers. Explicitly set an empty @pytest.mark.nhsd_apim_authorization marker() to silence this warning.")
+        return None
+
+    if not marker.args and not marker.kwargs:
         return None
 
     if marker.args:

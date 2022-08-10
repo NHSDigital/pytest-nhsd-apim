@@ -83,7 +83,7 @@ def pytest_configure(config):
     """
     config.addinivalue_line(
         "markers",
-        f"nhsd_apim_authorization(api_name, access): Marker to define the authorization journey you want to take to get your access token or apikey.",
+        f"nhsd_apim_authorization(*args, **kwargs): Marker to define the authorization journey you want to take to get your access token or apikey.",
     )
 
 

@@ -35,7 +35,6 @@ from .apigee_edge import (
     _apigee_app_base_url,
     _apigee_edge_session,
     _apigee_edge_session,
-    _apigee_products,
     _apigee_proxy,
     _create_test_app,
     _identity_service_proxy,
@@ -68,6 +67,7 @@ from .secrets import (
     _keycloak_client_credentials,
     _mock_jwks_api_key,
     status_endpoint_auth_headers,
+    _status_endpoint_api_key,
 )
 
 from .log import log, log_method
@@ -90,6 +90,10 @@ def nhsd_apim_auth_headers(
     This fixture will examine the @pytest.mark.nhsd_apim_authorization
     on your test and do the rest.
     """
+
+    if nhsd_apim_authorization is None:
+        return {}
+
     access = nhsd_apim_authorization["access"]
     level = nhsd_apim_authorization["level"]
     if access == "application":
