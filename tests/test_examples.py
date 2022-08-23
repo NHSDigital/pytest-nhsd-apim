@@ -44,6 +44,7 @@ def test_app_level0_access(nhsd_apim_proxy_url, nhsd_apim_auth_headers):
     """
     Test you have correctly configured an endpoint for application-level0 access.
     """
+    print(nhsd_apim_auth_headers)
     resp = requests.get(nhsd_apim_proxy_url + "/test-auth/app/level0")
     assert resp.status_code == 401  # unauthorized
 
@@ -91,6 +92,24 @@ def test_app_level3_access_repeatedly(count, nhsd_apim_auth_headers):
         f"This is the {count}{th(count)} test using the same credentials - {nhsd_apim_auth_headers}"
     )
 
+
+# If for any reason you want to override the caching
+# the force_new_token flag can be added
+@pytest.mark.parametrize(("count"), [1, 2, 3])
+@pytest.mark.nhsd_apim_authorization({"access": "application", "level": "level3", "force_new_token": True})
+def test_app_level3_with_force_new_token(count, nhsd_apim_auth_headers):
+    def th(i):
+        if i == 1:
+            return "st"
+        if i == 2:
+            return "nd"
+        if i == 3:
+            return "rd"
+        return "th"
+
+    print(
+        f"This is the {count}{th(count)} test using different credentials - {nhsd_apim_auth_headers}"
+    )
 
 # You can include marks in a pytest parametrization to reduce
 # boiler plate. This simple example matches authorization headers to

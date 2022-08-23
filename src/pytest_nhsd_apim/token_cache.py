@@ -80,6 +80,7 @@ def cache_tokens(f):
 
     @wraps(f)
     def wrapper(*args, **kwargs):
+        force_new_token = kwargs.pop("force_new_token", False)
         func_name = f.__name__
         if func_name not in _CACHES:
             _CACHES[func_name] = _TokenCache()
@@ -98,7 +99,7 @@ def cache_tokens(f):
             + _recursive_make_hashable(kwargs)
         )
         token_data = cache.get(cache_key)
-        if token_data:
+        if token_data and not force_new_token:
             log.debug(f"Cache hit for {func_name} with cache_key {cache_key}")
             return token_data
         log.debug(f"Cache miss for {func_name} with cache_key {cache_key}")

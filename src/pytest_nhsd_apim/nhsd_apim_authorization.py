@@ -10,6 +10,7 @@ from .log import log, log_method
 class BaseAuthorization(BaseModel):
     api_name: str
     generation: Literal[1, 2] = 2
+    force_new_token: bool = False
 
     def dict(self, **kwargs):
         """
