@@ -151,5 +151,7 @@ def nhsd_apim_auth_headers(
 ):
     if "access_token" in _nhsd_apim_auth_token_data:
         return {"Authorization": f"Bearer {_nhsd_apim_auth_token_data['access_token']}"}
+    elif "apikey" in _nhsd_apim_auth_token_data:
+        return _nhsd_apim_auth_token_data
     return {}
 
