@@ -75,7 +75,7 @@ from .log import log, log_method
 
 
 @pytest.fixture()
-def nhsd_apim_auth_headers(
+def _nhsd_apim_auth_token_data(
     nhsd_apim_authorization,
     _test_app_credentials,
     _test_app_callback_url,
@@ -106,7 +106,7 @@ def nhsd_apim_auth_headers(
                 jwt_private_key_pem,
                 jwt_public_key_id,
             )
-            return {"Authorization": f"Bearer {token_data['access_token']}"}
+            return token_data
         else:
             # Should have been pre-validated.
             raise ValueError(f"Invalid level '{level}' for access 'application'.")
@@ -139,4 +139,14 @@ def nhsd_apim_auth_headers(
         )
     else:
         raise ValueError(f"Invalid authentication: {authentication}")
-    return {"Authorization": f"Bearer {token_data['access_token']}"}
+    return token_data
+
+
+@pytest.fixture()
+def nhsd_apim_auth_headers(
+    _nhsd_apim_auth_token_data
+):
+    if "access_token" in _nhsd_apim_auth_token_data:
+        return {"Authorization": f"Bearer {_nhsd_apim_auth_token_data['access_token']}"}
+    return {}
+
