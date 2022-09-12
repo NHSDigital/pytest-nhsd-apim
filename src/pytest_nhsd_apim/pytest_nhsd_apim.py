@@ -37,6 +37,7 @@ from .apigee_edge import (
     _apigee_edge_session,
     _apigee_proxy,
     _create_test_app,
+    _create_function_scoped_test_app,
     _identity_service_proxy,
     _identity_service_proxy_name,
     _identity_service_proxy_names,
