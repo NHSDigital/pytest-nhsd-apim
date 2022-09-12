@@ -443,6 +443,38 @@ def _create_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_
     global _TEST_APP
     _TEST_APP = None
 
+@pytest.fixture(scope="function")
+@log_method
+def _create_function_scoped_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_url, nhsd_apim_pre_create_app):
+    """
+    Create an ephemeral app that lasts the duration of the pytest
+    test.
+
+    Note that a single app can have many sets of credentials.  Each
+    set of credentials can be subscribed to a unique set of products,
+    so one app can test your API against multiple product
+    configurations should you need to do so.  See `app_credentials`
+    for details.
+    """
+
+    app = {
+        "name": f"apim-auto-{uuid4()}",
+        "callbackUrl": "https://example.org/callback",
+        "attributes": [{"name": "jwks-resource-url", "value": jwt_public_key_url}],
+    }
+    create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app)
+    err_msg = f"Could not CREATE TestApp: `{app['name']}`.\tReason: {create_resp.text}"
+    assert create_resp.status_code == 201, err_msg
+
+    yield create_resp.json()
+    delete_resp = _apigee_edge_session.delete(
+        _apigee_app_base_url + "/" + app["name"]
+    )
+    err_msg = f"Could not DELETE TestApp: `{app['name']}`.\tReason: {delete_resp.text}"
+    assert delete_resp.status_code == 200, err_msg
+    global _TEST_APP
+    _TEST_APP = None
+
 
 @pytest.fixture(scope="session")
 @log_method

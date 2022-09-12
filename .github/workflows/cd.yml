@@ -16,7 +16,9 @@ jobs:
           python-version: 3.8
 
       - name: install deps
-        run: make install-deps
+        run: |
+          sudo apt install gnome-keyring
+          make install-deps
 
       - name: install twine
         run: pip install --upgrade pip && pip install twine
