@@ -56,7 +56,7 @@ def get_access_token_from_mock_cis2(
     # At the moment some Mock-CIS2 things are hard-coded.  But not too
     # many! It should be simple to extend it to do Mock-NHSLogin.
     login_session = _session()
-    oauth_server_url = "https://identity.ptl.api.platform.nhs.uk/auth/realms/cis2-mock/protocol/openid-connect"
+    oauth_server_url = "https://identity.ptl.api.platform.nhs.uk/auth/realms/Cis2-mock-internal-dev/protocol/openid-connect"
     resp = login_session.get(
         oauth_server_url + "/auth",
         params={
