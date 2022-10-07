@@ -50,8 +50,6 @@ from .apigee_edge import (
     nhsd_apim_pre_create_app,
     nhsd_apim_proxy_url,
     test_app,
-    nhsd_apim_test_app,
-    nhsd_apim_unsubscribe_test_app_from_all_products,
 )
 
 from .auth_journey import (

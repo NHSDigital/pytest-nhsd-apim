@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytest-nhsd-apim"
-version = "2.0.8"
+version = "2.0.7"
 description = "Pytest plugin accessing NHSDigital's APIM proxies"
 authors = ["Ben Strutt <ben.strutt1@nhs.net>", "Adrian Ciobanita <adrian.ciobanita1@nhs.net>"]
 maintainers = ["Ben Strutt <ben.strutt1@nhs.net>", "Adrian Ciobanita <adrian.ciobanita1@nhs.net>"]
@@ -22,7 +22,6 @@ requests = "^2.27.1"
 toml = "^0.10.2"
 typing-extensions = "^4.3.0"
 pydantic = "^1.9.1"
-wheel = "^0.37.1"
 
 
 [tool.poetry.dev-dependencies]
