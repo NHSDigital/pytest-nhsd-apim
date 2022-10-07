@@ -280,11 +280,20 @@ def _proxy_product_with_scope(_scope, _proxy_products, nhsd_apim_proxy_name):
     raise ValueError(error_msg)
 
 
+@pytest.fixture(scope="session")
+@log_method
+def test_app(nhsd_apim_test_app) -> Callable:
+    warnings.warn(
+        f"test_app fixture is deprecated. Use nhsd_apim_test_app instead."
+    )
+    return nhsd_apim_test_app
+
+
 _TEST_APP = None
 
 @pytest.fixture(scope="session")
 @log_method
-def test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Callable:
+def nhsd_apim_test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Callable:
     """
     A Callable that gets you the current state of the test app.
     """
@@ -320,6 +329,32 @@ def test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Ca
         return _TEST_APP
 
     return app
+
+
+@log_method
+@pytest.fixture(scope="session")
+def nhsd_apim_unsubscribe_test_app_from_all_products(
+    nhsd_apim_test_app, _apigee_edge_session, _apigee_app_base_url
+):
+    """
+    Returns a callable that when run, will unsubscribe the test app
+    from all products.
+
+    If you have test code which dynamically creates/destroys products,
+    you may need to bring in this callable and execute it.
+    """
+
+    def unsubscribe():
+        app = nhsd_apim_test_app(force_refresh=True)
+        app_name = app["name"]
+        for cred in app["credentials"]:
+            key = cred["consumerKey"]
+            resp = _apigee_edge_session.delete(
+                _apigee_app_base_url + f"/{app_name}/keys/{key}"
+            )
+        app = nhsd_apim_test_app(force_refresh=True)
+
+    return unsubscribe
 
 
 @log_method
@@ -373,7 +408,7 @@ def get_app_credentials_for_product(
 def _test_app_credentials(
     _apigee_app_base_url,
     _apigee_edge_session,
-    test_app,
+    nhsd_apim_test_app,
     _scope,
     _proxy_product_with_scope,
 ):
@@ -381,7 +416,7 @@ def _test_app_credentials(
     Get matching credentials for `test_app`, which have access
     to the EXACT set of desired products requested by the user.
     """
-    app = test_app()
+    app = nhsd_apim_test_app()
     return get_app_credentials_for_product(
         _apigee_app_base_url,
         _apigee_edge_session,
