@@ -212,24 +212,32 @@ def get_access_token_via_user_restricted_flow_combined_auth(
     authorize_response = get_authorize_endpoint_response(
         login_session, identity_service_base_url, client_id, callback_url, auth_scope
     )
+
     authorize_form = get_authorization_form(authorize_response.content.decode())
 
     # 2. Parse simulated_auth login page.  For both generation 1
     # (simulated_auth) and generation 2 (keycloak) this presents an
     # HTML form, which must be filled in with valid data.  The tester
     # can submits their login data with the `login_form` field.
+
     form_submission_data = get_authorize_form_submission_data(
         authorize_form, login_form
     )
 
+
     # form_submission_data["username"] = 656005750104
     #     # And here we inject a valid mock username for keycloak.
-    #     # For reference the valid mock usernames are...
+    #     # For reference some valid cis2 mock usernames are...
     #     # 656005750104 	surekha.kommareddy@nhs.net
     #     # 656005750105 	darren.mcdrew@nhs.net
     #     # 656005750106 	riley.jones@nhs.net
     #     # 656005750107 	shirley.bryne@nhs.net
-    #     form_submission_data["username"] = 656005750104
+
+    #     # And some valid nhs-login mock usernames are...
+    #     # P0
+    #     # P5
+    #     # P9
+  
 
     # 3. POST the filled in form. This is equivalent to clicking the
     # "Login" button if we were a human.
@@ -420,6 +428,7 @@ def get_authorize_endpoint_response(
 @log_method
 def get_authorize_form_submission_data(authorize_form, login_options):
     inputs = list(authorize_form.inputs)
+
     form_submission_data = {}
     # This loop picks up the pre-populated defaults, which is
     # sufficient for simulated auth. Defaults can be appended to with

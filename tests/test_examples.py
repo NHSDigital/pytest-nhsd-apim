@@ -125,7 +125,7 @@ def test_app_level3_with_force_new_token(count, nhsd_apim_auth_headers):
             marks=pytest.mark.nhsd_apim_authorization(
                 access="patient",
                 level="P0",
-                login_form={"auth_method": "P0"},
+                login_form={"username": "P0"},
             ),
         ),
         pytest.param(
@@ -134,7 +134,7 @@ def test_app_level3_with_force_new_token(count, nhsd_apim_auth_headers):
             marks=pytest.mark.nhsd_apim_authorization(
                 access="patient",
                 level="P0",
-                login_form={"auth_method": "P0"},
+                login_form={"username": "P0"},
             ),
         ),
         pytest.param(
@@ -143,7 +143,7 @@ def test_app_level3_with_force_new_token(count, nhsd_apim_auth_headers):
             marks=pytest.mark.nhsd_apim_authorization(
                 access="patient",
                 level="P0",
-                login_form={"auth_method": "P0"},
+                login_form={"username": "P0"},
             ),
         ),
         pytest.param(
@@ -152,7 +152,7 @@ def test_app_level3_with_force_new_token(count, nhsd_apim_auth_headers):
             marks=pytest.mark.nhsd_apim_authorization(
                 access="patient",
                 level="P5",
-                login_form={"auth_method": "P5"},
+                login_form={"username": "P5"},
             ),
         ),
         pytest.param(
@@ -161,7 +161,7 @@ def test_app_level3_with_force_new_token(count, nhsd_apim_auth_headers):
             marks=pytest.mark.nhsd_apim_authorization(
                 access="patient",
                 level="P5",
-                login_form={"auth_method": "P5"},
+                login_form={"username": "P5"},
             ),
         ),
         pytest.param(
@@ -170,7 +170,7 @@ def test_app_level3_with_force_new_token(count, nhsd_apim_auth_headers):
             marks=pytest.mark.nhsd_apim_authorization(
                 access="patient",
                 level="P9",
-                login_form={"auth_method": "P9"},
+                login_form={"username": "P9"},
             ),
         ),
     ],
@@ -223,14 +223,13 @@ def test_healthcare_worker_user_restricted_combined_auth(
     assert resp1.status_code == 200
 
 
-# Second generation auth also allows us to simulate separate
-# authentication and authorization, also called "token exchange". In
-# this flow, we authenticate directly with our Mock CIS2 instance, get
-# an ID token, and exchange it via a call to our oauth server for an
-# NHSD APIM access token. From out here, it doesn't look too
-# different. "combined" authentication is the default for this
-# library. To use separate authentication instead, add
-# authentication="separate" to the nhsd_apim_authorization mark.
+# Second generation auth also allows us to simulate separate authentication and
+# authorization, also called "token exchange". In this flow, we authenticate
+# directly with our Mock CIS2 instance, get an ID token, and exchange it via a
+# call to our oauth server for an NHSD APIM access token. From out here, it
+# doesn't look too different. "combined" authentication is the default for this
+# library. To use separate authentication instead, add authentication="separate"
+# to the nhsd_apim_authorization mark.
 @pytest.mark.nhsd_apim_authorization(
     {
         "access": "healthcare_worker",
@@ -247,7 +246,11 @@ def test_healthcare_work_user_restricted_separate_auth(
     assert resp0.status_code == 401
     resp1 = requests.get(aal3_url, headers=nhsd_apim_auth_headers)
     assert resp1.status_code == 200
-    
+
+# we can also authenticate directly with our Mock NHS-Login instance, get an ID
+# token, and exchange it via a call to our oauth server for an NHSD APIM access
+# token. To use separate authentication instead, add authentication="separate"
+# to the nhsd_apim_authorization mark.   
 @pytest.mark.nhsd_apim_authorization(
     {
         "access": "patient",
