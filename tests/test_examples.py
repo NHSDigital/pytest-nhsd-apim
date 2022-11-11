@@ -247,6 +247,23 @@ def test_healthcare_work_user_restricted_separate_auth(
     assert resp0.status_code == 401
     resp1 = requests.get(aal3_url, headers=nhsd_apim_auth_headers)
     assert resp1.status_code == 200
+    
+@pytest.mark.nhsd_apim_authorization(
+    {
+        "access": "patient",
+        "level": "P9",
+        "login_form": {"username": "pytest-nhsd-apim-test-user"},
+        "authentication": "separate",
+    }
+)
+def test_patient_user_restricted_separate_auth(
+    nhsd_apim_proxy_url, nhsd_apim_auth_headers
+):
+    P9_url = f"{nhsd_apim_proxy_url}/test-auth/nhs-login/P9"
+    resp0 = requests.get(P9_url)
+    assert resp0.status_code == 401
+    resp1 = requests.get(P9_url, headers=nhsd_apim_auth_headers)
+    assert resp1.status_code == 200
 
 
 # You can test unauthenticated access with an empty

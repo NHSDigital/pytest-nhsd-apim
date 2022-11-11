@@ -119,11 +119,12 @@ def _nhsd_apim_auth_token_data(
     authentication = nhsd_apim_authorization.get("authentication")
     login_form = nhsd_apim_authorization.get("login_form")
 
+    backend_provider_names = {
+        "healthcare_worker": "nhs-cis2",
+        "patient": "nhs-login",
+    }
+
     if authentication == "combined":
-        backend_provider_names = {
-            "healthcare_worker": "nhs-cis2",
-            "patient": "nhs-login",
-        }
         token_data = get_access_token_via_user_restricted_flow_combined_auth(
             identity_service_base_url,
             _test_app_credentials["consumerKey"],
@@ -141,6 +142,7 @@ def _nhsd_apim_auth_token_data(
             _test_app_credentials["consumerKey"],
             jwt_private_key_pem,
             jwt_public_key_id,
+            backend_provider_names[access],
             force_new_token=nhsd_apim_authorization["force_new_token"]
         )
     else:

@@ -64,7 +64,12 @@ class PatientAuthorization(UserRestrictedAuthorization):
 
     access: Literal["patient"]
     level: Literal["P0", "P5", "P9"]
-    generation: Literal[1] = 1
+
+    @validator("generation")
+    def warn_generation_1_deprecated(cls, generation):
+        if generation == 1:
+            warn("Generation 1 auth is deprecated for patient access.")
+        return generation
 
 
 class ApplicationAuthorization(BaseAuthorization):
