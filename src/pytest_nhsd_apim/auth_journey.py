@@ -38,25 +38,28 @@ def _session():
 
 @log_method
 @cache_tokens
-def get_access_token_from_mock_cis2(
+def get_access_token_from_mock(
     client_id: str,
     client_secret: str,
     redirect_uri: str,
     login_form: Dict[str, str],
+    auth_scope: Literal["nhs-login", "nhs-cis2"],
 ):
     """
     This is the first step is User Restricted Separate Auth a.k.a
     Token Exchange.  We get a set of tokens from our mock version of
-    CIS2.  The reponse includes an ID token, which we will then pass
+    CIS2/NHS-LOGIN.  The reponse includes an ID token, which we will then pass
     to identity service.  Identity service validates the ID *token*,
     and *exchanges* is it for an access token for the NHSD APIM
     proxies (which probably includes the proxy under test).
     """
 
-    # At the moment some Mock-CIS2 things are hard-coded.  But not too
-    # many! It should be simple to extend it to do Mock-NHSLogin.
+    realms = {
+        "nhs-cis2": "Cis2-mock-internal-dev",
+        "nhs-login": "NHS-Login-mock-internal-dev",
+    }
     login_session = _session()
-    oauth_server_url = "https://identity.ptl.api.platform.nhs.uk/auth/realms/Cis2-mock-internal-dev/protocol/openid-connect"
+    oauth_server_url = f"https://identity.ptl.api.platform.nhs.uk/auth/realms/{realms[auth_scope]}/protocol/openid-connect"
     resp = login_session.get(
         oauth_server_url + "/auth",
         params={
@@ -70,9 +73,9 @@ def get_access_token_from_mock_cis2(
     tree = html.fromstring(resp.text)
     form = tree.get_element_by_id("kc-form-login")
     resp2 = login_session.post(form.action, data=login_form)
-    log.debug("*"*100)
+    log.debug("*" * 100)
     log.debug(resp2.content)
-    log.debug("*"*100)
+    log.debug("*" * 100)
     location = urlparse(resp2.history[-1].headers["location"])
     params = parse_qs(location.query)
     code = params["code"]
@@ -88,57 +91,6 @@ def get_access_token_from_mock_cis2(
     )
     return resp3.json()
 
-@log_method
-@cache_tokens
-def get_access_token_from_mock_nhs_login(
-    client_id: str,
-    client_secret: str,
-    redirect_uri: str,
-    login_form: Dict[str, str],
-):
-    """
-    This is the first step is User Restricted Separate Auth a.k.a
-    Token Exchange.  We get a set of tokens from our mock version of
-    CIS2.  The reponse includes an ID token, which we will then pass
-    to identity service.  Identity service validates the ID *token*,
-    and *exchanges* is it for an access token for the NHSD APIM
-    proxies (which probably includes the proxy under test).
-    """
-
-    # At the moment some Mock-CIS2 things are hard-coded.  But not too
-    # many! It should be simple to extend it to do Mock-NHSLogin.
-    login_session = _session()
-    oauth_server_url = "https://identity.ptl.api.platform.nhs.uk/auth/realms/NHS-Login-mock-internal-dev/protocol/openid-connect"
-    resp = login_session.get(
-        oauth_server_url + "/auth",
-        params={
-            "response_type": "code",
-            "client_id": client_id,
-            "scope": "openid",
-            "redirect_uri": redirect_uri,
-        },
-    )
-    log.debug(resp.text)
-    tree = html.fromstring(resp.text)
-    form = tree.get_element_by_id("kc-form-login")
-    resp2 = login_session.post(form.action, data=login_form)
-    log.debug("*"*100)
-    log.debug(resp2.content)
-    log.debug("*"*100)
-    location = urlparse(resp2.history[-1].headers["location"])
-    params = parse_qs(location.query)
-    code = params["code"]
-    resp3 = login_session.post(
-        oauth_server_url + "/token",
-        data={
-            "grant_type": "authorization_code",
-            "code": code,
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "redirect_uri": redirect_uri,
-        },
-    )
-    return resp3.json()
 
 @log_method
 @cache_tokens
@@ -149,7 +101,7 @@ def get_access_token_via_user_restricted_flow_separate_auth(
     apigee_client_id,
     jwt_private_key,
     jwt_kid,
-    auth_scope: Literal["nhs-login", "nhs-cis2"]
+    auth_scope: Literal["nhs-login", "nhs-cis2"],
 ):
     """
     Gets an ID token from an identity provider, which would be CIS2
@@ -163,18 +115,20 @@ def get_access_token_via_user_restricted_flow_separate_auth(
 
     # This is keycloak but for real token exchange, would be CIS2 or NHSLogin.
     if auth_scope == "nhs-cis2":
-        identity_provider_token_data = get_access_token_from_mock_cis2(
+        identity_provider_token_data = get_access_token_from_mock(
             keycloak_client_credentials["cis2"]["client_id"],
             keycloak_client_credentials["cis2"]["client_secret"],
             keycloak_client_credentials["cis2"]["redirect_uri"],
             login_form,
+            auth_scope,
         )
     else:
-        identity_provider_token_data = get_access_token_from_mock_nhs_login(
+        identity_provider_token_data = get_access_token_from_mock(
             keycloak_client_credentials["nhs-login"]["client_id"],
             keycloak_client_credentials["nhs-login"]["client_secret"],
             keycloak_client_credentials["nhs-login"]["redirect_uri"],
             login_form,
+            auth_scope,
         )
 
     token_data = get_access_token_via_signed_jwt_flow(
@@ -198,8 +152,8 @@ def get_access_token_via_user_restricted_flow_combined_auth(
     login_form: Dict[str, str],
 ):
     """
-    Complete the user-restricted authorization journey for CIS2 using
-    our simulated_auth endpoint.
+    Complete the user-restricted authorization journey for CIS2 or NHS-LOGIN using
+    our auth endpoint.
 
     This webpage does a pretty good job of explaining the journey:
     https://digital.nhs.uk/developer/guides-and-documentation/security-and-authorisation/user-restricted-restful-apis-nhs-cis2-combined-authentication-and-authorisation
@@ -224,7 +178,6 @@ def get_access_token_via_user_restricted_flow_combined_auth(
         authorize_form, login_form
     )
 
-
     # form_submission_data["username"] = 656005750104
     #     # And here we inject a valid mock username for keycloak.
     #     # For reference some valid cis2 mock usernames are...
@@ -237,7 +190,6 @@ def get_access_token_via_user_restricted_flow_combined_auth(
     #     # P0
     #     # P5
     #     # P9
-  
 
     # 3. POST the filled in form. This is equivalent to clicking the
     # "Login" button if we were a human.
@@ -323,10 +275,7 @@ def get_access_token_via_signed_jwt_flow(
             "client_assertion": client_assertion,
         }
 
-    resp = requests.post(
-        url,
-        data=data,
-    )
+    resp = requests.post(url, data=data)
     if resp.status_code != 200:
         raise RuntimeError(f"{resp.status_code}: {resp.text}")
     return resp.json()
@@ -457,9 +406,7 @@ def log_in_identity_service_provider(
 ):
     form_submit_url = authorize_form.action or authorize_response.request.url
     resp = session.request(
-        authorize_form.method,
-        form_submit_url,
-        data=form_submission_data,
+        authorize_form.method, form_submit_url, data=form_submission_data
     )
     return resp
 

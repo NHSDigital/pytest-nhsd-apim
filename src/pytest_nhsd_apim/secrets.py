@@ -37,6 +37,7 @@ def status_endpoint_auth_headers(_status_endpoint_api_key):
 
 _STATUS_ENDPOINT_API_KEY = None
 
+
 @pytest.fixture()
 @log_method
 def _status_endpoint_api_key(_mock_jwks_api_key):
@@ -52,6 +53,7 @@ def _status_endpoint_api_key(_mock_jwks_api_key):
 
 
 _KEYCLOAK_CLIENT_CREDENTIALS = None
+
 
 @pytest.fixture()
 @log_method

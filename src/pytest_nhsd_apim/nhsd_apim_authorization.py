@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, validator
 
 from .log import log, log_method
 
+
 class BaseAuthorization(BaseModel):
     api_name: str
     generation: Literal[1, 2] = 2
@@ -88,7 +89,6 @@ class Authorization(BaseModel):
     ]
 
 
-
 @pytest.fixture()
 @log_method
 def nhsd_apim_authorization(request, nhsd_apim_api_name):
@@ -106,7 +106,9 @@ def nhsd_apim_authorization(request, nhsd_apim_api_name):
     """
     marker = request.node.get_closest_marker("nhsd_apim_authorization")
     if marker is None:
-        warn("Could not find nhsd_apim_authorization marker. This will result in empty authorization headers. Explicitly set an empty @pytest.mark.nhsd_apim_authorization marker() to silence this warning.")
+        warn(
+            "Could not find nhsd_apim_authorization marker. This will result in empty authorization headers. Explicitly set an empty @pytest.mark.nhsd_apim_authorization marker() to silence this warning."
+        )
         return None
 
     if not marker.args and not marker.kwargs:

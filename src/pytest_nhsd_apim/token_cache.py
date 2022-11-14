@@ -10,7 +10,6 @@ from functools import wraps
 from .log import log, log_method
 
 
-
 class _TokenCache:
     def __init__(self):
         self._cache = {}
