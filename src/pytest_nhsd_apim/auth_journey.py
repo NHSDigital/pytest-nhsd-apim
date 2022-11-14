@@ -169,8 +169,7 @@ def get_access_token_via_user_restricted_flow_combined_auth(
 
     authorize_form = get_authorization_form(authorize_response.content.decode())
 
-    # 2. Parse simulated_auth login page.  For both generation 1
-    # (simulated_auth) and generation 2 (keycloak) this presents an
+    # 2. Parse simulated_auth login page.  For keycloack this presents an
     # HTML form, which must be filled in with valid data.  The tester
     # can submits their login data with the `login_form` field.
 

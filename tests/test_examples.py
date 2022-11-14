@@ -255,7 +255,7 @@ def test_healthcare_work_user_restricted_separate_auth(
     {
         "access": "patient",
         "level": "P9",
-        "login_form": {"username": "pytest-nhsd-apim-test-user"},
+        "login_form": {"username": "P9"},
         "authentication": "separate",
     }
 )

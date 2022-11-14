@@ -238,22 +238,13 @@ def _identity_service_proxy_name(
     if not nhsd_apim_authorization:
         return None
 
-    generation = nhsd_apim_authorization["generation"]
-    if generation == 1:  # prefer one without "mock" in the name.
-        simulated_auth = next(
-            filter(lambda name: "-mock" not in name, _identity_service_proxy_names),
-            None,
-        )
-        if simulated_auth:
-            return simulated_auth
-    elif generation == 2:  # prefer one with "mock" in the name.
-        keycloak = next(
-            filter(lambda name: "-mock" in name, _identity_service_proxy_names), None
-        )
-        if keycloak:
-            return keycloak
+    keycloak = next(
+        filter(lambda name: "-mock" in name, _identity_service_proxy_names), None
+    )
+    if keycloak:
+        return keycloak
     warnings.warn(
-        f"Unable to find mock auth generation {generation} in {_identity_service_proxy_names}."
+        f"Unable to find mock auth generation 2 in {_identity_service_proxy_names}."
     )
     return _identity_service_proxy_names[0]
 

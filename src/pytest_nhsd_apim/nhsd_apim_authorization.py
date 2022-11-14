@@ -10,7 +10,6 @@ from .log import log, log_method
 
 class BaseAuthorization(BaseModel):
     api_name: str
-    generation: Literal[1, 2] = 2
     force_new_token: bool = False
 
     def dict(self, **kwargs):
@@ -51,11 +50,6 @@ class HealthcareWorkerAuthorization(UserRestrictedAuthorization):
     access: Literal["healthcare_worker"]
     level: Literal["aal1", "aal3"]
 
-    @validator("generation")
-    def warn_generation_1_deprecated(cls, generation):
-        if generation == 1:
-            warn("Generation 1 auth is deprecated for healthcare_worker access.")
-        return generation
 
 
 class PatientAuthorization(UserRestrictedAuthorization):
@@ -66,11 +60,6 @@ class PatientAuthorization(UserRestrictedAuthorization):
     access: Literal["patient"]
     level: Literal["P0", "P5", "P9"]
 
-    @validator("generation")
-    def warn_generation_1_deprecated(cls, generation):
-        if generation == 1:
-            warn("Generation 1 auth is deprecated for patient access.")
-        return generation
 
 
 class ApplicationAuthorization(BaseAuthorization):
