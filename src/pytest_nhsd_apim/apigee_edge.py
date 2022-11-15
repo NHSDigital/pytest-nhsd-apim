@@ -170,7 +170,7 @@ def _get_proxy_url(proxy_json):
 @log_method
 def _get_keycloak_url(proxy_json):
     """
-    Construct the keycloak url from the proxy_json
+    Construct the relevant keycloak urls from the proxy_json
     """
     env = proxy_json["environment"]
     
@@ -180,15 +180,6 @@ def _get_keycloak_url(proxy_json):
     }
 
     return backend_provider_urls
-
-@log_method
-def _get_environment(proxy_json):
-    """
-    Construct the keycloak url from the proxy_json
-    """
-    env = proxy_json["environment"]
-    
-    return env
 
 
 @pytest.fixture()
@@ -203,9 +194,9 @@ def nhsd_apim_proxy_url(_apigee_proxy):
 @log_method
 def apigee_environment(_apigee_proxy):
     """
-    Apigee environment we are working on.
+    Apigee environment of the proxy under test.
     """
-    return _get_environment(_apigee_proxy)
+    return _apigee_proxy["environment"]
 
 @pytest.fixture()
 @log_method
@@ -259,19 +250,13 @@ def _identity_service_proxy_name(
     _identity_service_proxy_names, nhsd_apim_authorization
 ):
     """
-    Make a reasonable choice about which identity-service proxy to
-    use.
+    Make a reasonable choice about which identity-service proxy to use.
 
-    We have a very dumb 'simulated_auth' app, which was the original
-    and is typically what our internal environments point to.
+    We have a keycloak instance, which is a proper OIDC provider, which is
+    pointed to by identity-service proxies with "mock" in the name.
 
-    Second, and definitively better, we have a keycloak instance,
-    which is a proper OIDC provider, which is pointed to by
-    identity-service proxies with "mock" in the name.
-
-    You should prefer keycloak over simulated auth.  Return None if
-    there's no identity-service proxies, though this should probably
-    never happen.
+    Return None if there's no identity-service proxies, though this should
+    probably never happen.
     """
     if not _identity_service_proxy_names:  # empty list
         return None

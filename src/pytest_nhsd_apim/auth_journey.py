@@ -46,15 +46,20 @@ def get_access_token_from_mock(
     keycloack_url: str
 ):
     """
-    This is the first step is User Restricted Separate Auth a.k.a
-    Token Exchange.  We get a set of tokens from our mock version of
-    CIS2/NHS-LOGIN.  The reponse includes an ID token, which we will then pass
-    to identity service.  Identity service validates the ID *token*,
-    and *exchanges* is it for an access token for the NHSD APIM
-    proxies (which probably includes the proxy under test).
+    This is the first step is User Restricted Separate Auth a.k.a Token
+    Exchange.  We get a set of tokens from our mock version of CIS2/NHS-LOGIN.
+    The reponse includes an ID token, which we will then pass to identity
+    service.  Identity service validates the ID *token*, and *exchanges* is it
+    for an access token for the NHSD APIM proxies (which probably includes the
+    proxy under test). 
+    
+    It is important to know that for nhs-login we are using client-id and secret
+    as supposed to be using signed jwt for authentication as described in the
+    documentation. This is so we can use this function to authenticate against
+    both providers and at the end of the day the token response from keycloak
+    will be the same regardless the authentication method.
     """
-    # explain why we are getting tokens using client id and secret for nhs-login
-    # as supposed of using signed jwt
+
     login_session = _session()
   
     resp = login_session.get(
@@ -111,14 +116,14 @@ def get_access_token_via_user_restricted_flow_separate_auth(
     the token, and gives us an NHSD APIM access token in return.
     """
     # This is keycloak but for real token exchange, would be CIS2 or NHSLogin.
-    keycloak_url = keycloack_urls[auth_scope]
+    realm_url = keycloack_urls[auth_scope]
     if auth_scope == "nhs-cis2":
         identity_provider_token_data = get_access_token_from_mock(
             keycloak_client_credentials["cis2"]["client_id"],
             keycloak_client_credentials["cis2"]["client_secret"],
             keycloak_client_credentials["cis2"]["redirect_uri"],
             login_form,
-            keycloak_url,
+            realm_url,
         )
     else:
         identity_provider_token_data = get_access_token_from_mock(
@@ -126,7 +131,7 @@ def get_access_token_via_user_restricted_flow_separate_auth(
             keycloak_client_credentials["nhs-login"]["client_secret"],
             keycloak_client_credentials["nhs-login"]["redirect_uri"],
             login_form,
-            keycloak_url
+            realm_url
         )
 
     token_data = get_access_token_via_signed_jwt_flow(
@@ -167,7 +172,7 @@ def get_access_token_via_user_restricted_flow_combined_auth(
 
     authorize_form = get_authorization_form(authorize_response.content.decode())
 
-    # 2. Parse simulated_auth login page.  For keycloack this presents an
+    # 2. Parse the login page.  For keycloack this presents an
     # HTML form, which must be filled in with valid data.  The tester
     # can submits their login data with the `login_form` field.
 
@@ -193,12 +198,12 @@ def get_access_token_via_user_restricted_flow_combined_auth(
     response_identity_service_login = log_in_identity_service_provider(
         login_session, authorize_response, authorize_form, form_submission_data
     )
-    # 4. The simulated_auth redirected us back to the
+    # 4. The mock auth redirected us back to the
     # identity-service, which redirected us to whatever our app's
     # callback-url was set to.  We don't actually care about the
     # content our callback-url page, we just need the auth_code that
     # was provided in the redirect.
-    auth_code = get_auth_code_from_simulated_auth(response_identity_service_login)
+    auth_code = get_auth_code_from_mock_auth(response_identity_service_login)
 
     # 5. Finally, get an access token.
     resp = login_session.post(
@@ -409,7 +414,7 @@ def log_in_identity_service_provider(
 
 
 @log_method
-def get_auth_code_from_simulated_auth(response_identity_service_login):
+def get_auth_code_from_mock_auth(response_identity_service_login):
     qs = urlparse(response_identity_service_login.history[-1].headers["Location"]).query
     auth_code = parse_qs(qs)["code"]
     if isinstance(auth_code, list):
