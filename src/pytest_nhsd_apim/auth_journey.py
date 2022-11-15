@@ -189,9 +189,9 @@ def get_access_token_via_user_restricted_flow_combined_auth(
     #     # 656005750107 	shirley.bryne@nhs.net
 
     #     # And some valid nhs-login mock usernames are...
-    #     # P0
-    #     # P5
-    #     # P9
+    #     # 9912003071      for High - P9 
+    #     # 9912003072      for Medium - P5
+    #     # 9912003073      for Low - P0
 
     # 3. POST the filled in form. This is equivalent to clicking the
     # "Login" button if we were a human.

@@ -125,7 +125,7 @@ def test_app_level3_with_force_new_token(count, nhsd_apim_auth_headers):
             marks=pytest.mark.nhsd_apim_authorization(
                 access="patient",
                 level="P0",
-                login_form={"username": "P0"},
+                login_form={"username": "9912003073"},
             ),
         ),
         pytest.param(
@@ -134,7 +134,7 @@ def test_app_level3_with_force_new_token(count, nhsd_apim_auth_headers):
             marks=pytest.mark.nhsd_apim_authorization(
                 access="patient",
                 level="P0",
-                login_form={"username": "P0"},
+                login_form={"username": "9912003073"},
             ),
         ),
         pytest.param(
@@ -143,7 +143,7 @@ def test_app_level3_with_force_new_token(count, nhsd_apim_auth_headers):
             marks=pytest.mark.nhsd_apim_authorization(
                 access="patient",
                 level="P0",
-                login_form={"username": "P0"},
+                login_form={"username": "9912003073"},
             ),
         ),
         pytest.param(
@@ -152,7 +152,7 @@ def test_app_level3_with_force_new_token(count, nhsd_apim_auth_headers):
             marks=pytest.mark.nhsd_apim_authorization(
                 access="patient",
                 level="P5",
-                login_form={"username": "P5"},
+                login_form={"username": "9912003072"},
             ),
         ),
         pytest.param(
@@ -161,7 +161,7 @@ def test_app_level3_with_force_new_token(count, nhsd_apim_auth_headers):
             marks=pytest.mark.nhsd_apim_authorization(
                 access="patient",
                 level="P5",
-                login_form={"username": "P5"},
+                login_form={"username": "9912003072"},
             ),
         ),
         pytest.param(
@@ -170,7 +170,7 @@ def test_app_level3_with_force_new_token(count, nhsd_apim_auth_headers):
             marks=pytest.mark.nhsd_apim_authorization(
                 access="patient",
                 level="P9",
-                login_form={"username": "P9"},
+                login_form={"username": "9912003071"},
             ),
         ),
     ],
@@ -255,7 +255,7 @@ def test_healthcare_work_user_restricted_separate_auth(
     {
         "access": "patient",
         "level": "P9",
-        "login_form": {"username": "P9"},
+        "login_form": {"username": "9912003071"},
         "authentication": "separate",
     }
 )
