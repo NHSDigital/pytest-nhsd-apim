@@ -12,6 +12,7 @@ from .apigee_edge import (
     _apigee_edge_session,
     get_app_credentials_for_product,
     test_app,
+    apigee_environment,
 )
 
 from .log import log, log_method
@@ -22,9 +23,9 @@ _SESSION = requests.session()
 
 @pytest.fixture()
 @log_method
-def _mock_jwks_api_key(_apigee_app_base_url, _apigee_edge_session, test_app):
+def _mock_jwks_api_key(_apigee_app_base_url, _apigee_edge_session, test_app, apigee_environment):
     creds = get_app_credentials_for_product(
-        _apigee_app_base_url, _apigee_edge_session, test_app(), "mock-jwks-internal-dev"
+        _apigee_app_base_url, _apigee_edge_session, test_app(), f"mock-jwks-{apigee_environment}"
     )
     return creds["consumerKey"]
 
@@ -40,11 +41,11 @@ _STATUS_ENDPOINT_API_KEY = None
 
 @pytest.fixture()
 @log_method
-def _status_endpoint_api_key(_mock_jwks_api_key):
+def _status_endpoint_api_key(_mock_jwks_api_key, apigee_environment):
     global _STATUS_ENDPOINT_API_KEY
     if _STATUS_ENDPOINT_API_KEY is None:
         resp = _SESSION.get(
-            "https://internal-dev.api.service.nhs.uk/mock-jwks/status-endpoint-api-key",
+            f"https://{apigee_environment}.api.service.nhs.uk/mock-jwks/status-endpoint-api-key",
             headers={"apikey": _mock_jwks_api_key},
         )
         resp.raise_for_status()
@@ -57,11 +58,11 @@ _KEYCLOAK_CLIENT_CREDENTIALS = None
 
 @pytest.fixture()
 @log_method
-def _keycloak_client_credentials(_mock_jwks_api_key):
+def _keycloak_client_credentials(_mock_jwks_api_key, apigee_environment):
     global _KEYCLOAK_CLIENT_CREDENTIALS
     if _KEYCLOAK_CLIENT_CREDENTIALS is None:
         resp = _SESSION.get(
-            "https://internal-dev.api.service.nhs.uk/mock-jwks/keycloak-client-credentials",
+            f"https://{apigee_environment}.api.service.nhs.uk/mock-jwks/keycloak-client-credentials",
             headers={"apikey": _mock_jwks_api_key},
         )
         resp.raise_for_status()

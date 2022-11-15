@@ -43,7 +43,7 @@ def get_access_token_from_mock(
     client_secret: str,
     redirect_uri: str,
     login_form: Dict[str, str],
-    auth_scope: Literal["nhs-login", "nhs-cis2"],
+    keycloack_url: str
 ):
     """
     This is the first step is User Restricted Separate Auth a.k.a
@@ -53,15 +53,12 @@ def get_access_token_from_mock(
     and *exchanges* is it for an access token for the NHSD APIM
     proxies (which probably includes the proxy under test).
     """
-
-    realms = {
-        "nhs-cis2": "Cis2-mock-internal-dev",
-        "nhs-login": "NHS-Login-mock-internal-dev",
-    }
+    # explain why we are getting tokens using client id and secret for nhs-login
+    # as supposed of using signed jwt
     login_session = _session()
-    oauth_server_url = f"https://identity.ptl.api.platform.nhs.uk/auth/realms/{realms[auth_scope]}/protocol/openid-connect"
+  
     resp = login_session.get(
-        oauth_server_url + "/auth",
+        keycloack_url + "/auth",
         params={
             "response_type": "code",
             "client_id": client_id,
@@ -80,7 +77,7 @@ def get_access_token_from_mock(
     params = parse_qs(location.query)
     code = params["code"]
     resp3 = login_session.post(
-        oauth_server_url + "/token",
+        keycloack_url + "/token",
         data={
             "grant_type": "authorization_code",
             "code": code,
@@ -102,6 +99,7 @@ def get_access_token_via_user_restricted_flow_separate_auth(
     jwt_private_key,
     jwt_kid,
     auth_scope: Literal["nhs-login", "nhs-cis2"],
+    keycloack_urls
 ):
     """
     Gets an ID token from an identity provider, which would be CIS2
@@ -112,15 +110,15 @@ def get_access_token_via_user_restricted_flow_separate_auth(
     It then passes that ID token to identity-service, which validates
     the token, and gives us an NHSD APIM access token in return.
     """
-
     # This is keycloak but for real token exchange, would be CIS2 or NHSLogin.
+    keycloak_url = keycloack_urls[auth_scope]
     if auth_scope == "nhs-cis2":
         identity_provider_token_data = get_access_token_from_mock(
             keycloak_client_credentials["cis2"]["client_id"],
             keycloak_client_credentials["cis2"]["client_secret"],
             keycloak_client_credentials["cis2"]["redirect_uri"],
             login_form,
-            auth_scope,
+            keycloak_url,
         )
     else:
         identity_provider_token_data = get_access_token_from_mock(
@@ -128,7 +126,7 @@ def get_access_token_via_user_restricted_flow_separate_auth(
             keycloak_client_credentials["nhs-login"]["client_secret"],
             keycloak_client_credentials["nhs-login"]["redirect_uri"],
             login_form,
-            auth_scope,
+            keycloak_url
         )
 
     token_data = get_access_token_via_signed_jwt_flow(

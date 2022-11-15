@@ -47,11 +47,13 @@ from .apigee_edge import (
     _test_app_callback_url,
     _test_app_credentials,
     identity_service_base_url,
+    keycloak_realm_url,
     nhsd_apim_pre_create_app,
     nhsd_apim_proxy_url,
     test_app,
     nhsd_apim_test_app,
     nhsd_apim_unsubscribe_test_app_from_all_products,
+    apigee_environment,
 )
 
 from .auth_journey import (
@@ -83,6 +85,7 @@ def _nhsd_apim_auth_token_data(
     _test_app_callback_url,
     _keycloak_client_credentials,
     identity_service_base_url,
+    keycloak_realm_url,
     jwt_private_key_pem,
     jwt_public_key_id,
 ):
@@ -130,6 +133,7 @@ def _nhsd_apim_auth_token_data(
             login_form,
             force_new_token=nhsd_apim_authorization["force_new_token"],
         )
+
     elif authentication == "separate":
         token_data = get_access_token_via_user_restricted_flow_separate_auth(
             identity_service_base_url,
@@ -139,6 +143,7 @@ def _nhsd_apim_auth_token_data(
             jwt_private_key_pem,
             jwt_public_key_id,
             backend_provider_names[access],
+            keycloak_realm_url,
             force_new_token=nhsd_apim_authorization["force_new_token"],
         )
     else:
