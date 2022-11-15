@@ -47,7 +47,7 @@ from .apigee_edge import (
     _test_app_callback_url,
     _test_app_credentials,
     identity_service_base_url,
-    keycloak_realm_url,
+    keycloak_realm_urls,
     nhsd_apim_pre_create_app,
     nhsd_apim_proxy_url,
     test_app,
@@ -85,7 +85,7 @@ def _nhsd_apim_auth_token_data(
     _test_app_callback_url,
     _keycloak_client_credentials,
     identity_service_base_url,
-    keycloak_realm_url,
+    keycloak_realm_urls,
     jwt_private_key_pem,
     jwt_public_key_id,
 ):
@@ -143,7 +143,7 @@ def _nhsd_apim_auth_token_data(
             jwt_private_key_pem,
             jwt_public_key_id,
             backend_provider_names[access],
-            keycloak_realm_url,
+            keycloak_realm_urls,
             force_new_token=nhsd_apim_authorization["force_new_token"],
         )
     else:
