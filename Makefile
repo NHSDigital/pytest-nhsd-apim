@@ -1,5 +1,4 @@
 .PHONY: build clean test install
-array := ("something" "something else")
 install-deps:
 	@pip install --upgrade pip
 	@pip install poetry
