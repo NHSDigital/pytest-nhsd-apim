@@ -47,11 +47,13 @@ from .apigee_edge import (
     _test_app_callback_url,
     _test_app_credentials,
     identity_service_base_url,
+    keycloak_realm_urls,
     nhsd_apim_pre_create_app,
     nhsd_apim_proxy_url,
     test_app,
     nhsd_apim_test_app,
     nhsd_apim_unsubscribe_test_app_from_all_products,
+    apigee_environment,
 )
 
 from .auth_journey import (
@@ -76,7 +78,6 @@ from .secrets import (
 from .log import log, log_method
 
 
-
 @pytest.fixture()
 def _nhsd_apim_auth_token_data(
     nhsd_apim_authorization,
@@ -84,6 +85,7 @@ def _nhsd_apim_auth_token_data(
     _test_app_callback_url,
     _keycloak_client_credentials,
     identity_service_base_url,
+    keycloak_realm_urls,
     jwt_private_key_pem,
     jwt_public_key_id,
 ):
@@ -108,7 +110,7 @@ def _nhsd_apim_auth_token_data(
                 _test_app_credentials["consumerKey"],
                 jwt_private_key_pem,
                 jwt_public_key_id,
-                force_new_token=nhsd_apim_authorization["force_new_token"]
+                force_new_token=nhsd_apim_authorization["force_new_token"],
             )
             return token_data
         else:
@@ -119,11 +121,9 @@ def _nhsd_apim_auth_token_data(
     authentication = nhsd_apim_authorization.get("authentication")
     login_form = nhsd_apim_authorization.get("login_form")
 
+    backend_provider_names = {"healthcare_worker": "nhs-cis2", "patient": "nhs-login"}
+
     if authentication == "combined":
-        backend_provider_names = {
-            "healthcare_worker": "nhs-cis2",
-            "patient": "nhs-login",
-        }
         token_data = get_access_token_via_user_restricted_flow_combined_auth(
             identity_service_base_url,
             _test_app_credentials["consumerKey"],
@@ -131,8 +131,9 @@ def _nhsd_apim_auth_token_data(
             _test_app_callback_url,
             backend_provider_names[access],
             login_form,
-            force_new_token=nhsd_apim_authorization["force_new_token"]
+            force_new_token=nhsd_apim_authorization["force_new_token"],
         )
+
     elif authentication == "separate":
         token_data = get_access_token_via_user_restricted_flow_separate_auth(
             identity_service_base_url,
@@ -141,7 +142,9 @@ def _nhsd_apim_auth_token_data(
             _test_app_credentials["consumerKey"],
             jwt_private_key_pem,
             jwt_public_key_id,
-            force_new_token=nhsd_apim_authorization["force_new_token"]
+            backend_provider_names[access],
+            keycloak_realm_urls,
+            force_new_token=nhsd_apim_authorization["force_new_token"],
         )
     else:
         raise ValueError(f"Invalid authentication: {authentication}")
@@ -149,12 +152,9 @@ def _nhsd_apim_auth_token_data(
 
 
 @pytest.fixture()
-def nhsd_apim_auth_headers(
-    _nhsd_apim_auth_token_data
-):
+def nhsd_apim_auth_headers(_nhsd_apim_auth_token_data):
     if "access_token" in _nhsd_apim_auth_token_data:
         return {"Authorization": f"Bearer {_nhsd_apim_auth_token_data['access_token']}"}
     elif "apikey" in _nhsd_apim_auth_token_data:
         return _nhsd_apim_auth_token_data
     return {}
-

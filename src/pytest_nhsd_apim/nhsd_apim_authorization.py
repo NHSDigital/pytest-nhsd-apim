@@ -7,9 +7,9 @@ from pydantic import BaseModel, Field, validator
 
 from .log import log, log_method
 
+
 class BaseAuthorization(BaseModel):
     api_name: str
-    generation: Literal[1, 2] = 2
     force_new_token: bool = False
 
     def dict(self, **kwargs):
@@ -50,11 +50,6 @@ class HealthcareWorkerAuthorization(UserRestrictedAuthorization):
     access: Literal["healthcare_worker"]
     level: Literal["aal1", "aal3"]
 
-    @validator("generation")
-    def warn_generation_1_deprecated(cls, generation):
-        if generation == 1:
-            warn("Generation 1 auth is deprecated for healthcare_worker access.")
-        return generation
 
 
 class PatientAuthorization(UserRestrictedAuthorization):
@@ -64,7 +59,7 @@ class PatientAuthorization(UserRestrictedAuthorization):
 
     access: Literal["patient"]
     level: Literal["P0", "P5", "P9"]
-    generation: Literal[1] = 1
+
 
 
 class ApplicationAuthorization(BaseAuthorization):
@@ -81,7 +76,6 @@ class Authorization(BaseModel):
         ],
         Field(discriminator="access"),
     ]
-
 
 
 @pytest.fixture()
@@ -101,7 +95,9 @@ def nhsd_apim_authorization(request, nhsd_apim_api_name):
     """
     marker = request.node.get_closest_marker("nhsd_apim_authorization")
     if marker is None:
-        warn("Could not find nhsd_apim_authorization marker. This will result in empty authorization headers. Explicitly set an empty @pytest.mark.nhsd_apim_authorization marker() to silence this warning.")
+        warn(
+            "Could not find nhsd_apim_authorization marker. This will result in empty authorization headers. Explicitly set an empty @pytest.mark.nhsd_apim_authorization marker() to silence this warning."
+        )
         return None
 
     if not marker.args and not marker.kwargs:

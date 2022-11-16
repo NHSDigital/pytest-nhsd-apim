@@ -17,12 +17,19 @@ from datetime import datetime
 
 logging.METHOD = 5
 logging.addLevelName(logging.METHOD, "METHOD")
-logging.Logger.method = lambda inst, msg, *args, **kwargs: inst.log(logging.METHOD, msg, *args, **kwargs)
-logging.LoggerAdapter.method = lambda inst, msg, *args, **kwargs: inst.log(logging.METHOD, msg, *args, **kwargs)
-logging.method = lambda msg, *args, **kwargs: logging.log(logging.METHOD, msg, *args, **kwargs)
+logging.Logger.method = lambda inst, msg, *args, **kwargs: inst.log(
+    logging.METHOD, msg, *args, **kwargs
+)
+logging.LoggerAdapter.method = lambda inst, msg, *args, **kwargs: inst.log(
+    logging.METHOD, msg, *args, **kwargs
+)
+logging.method = lambda msg, *args, **kwargs: logging.log(
+    logging.METHOD, msg, *args, **kwargs
+)
 
 # Use this elswhere
 log = logging.getLogger(__name__)
+
 
 def log_method(f):
     """
@@ -32,6 +39,7 @@ def log_method(f):
 
     It puts it at a SUPER-LOW logging level (5).
     """
+
     def pre_log(f, *args, **kwargs):
         log_line = {
             "timestamp": datetime.utcnow().isoformat(),
@@ -85,5 +93,3 @@ def _jsonify(line):
         return json.dumps(line, default=str)
     except json.JSONDecodeError:
         return str(line)
-
-

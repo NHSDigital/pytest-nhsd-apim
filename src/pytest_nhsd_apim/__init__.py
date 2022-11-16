@@ -1,4 +1,3 @@
 import logging
 
-logging.getLogger('urllib3').setLevel(logging.CRITICAL)
-
+logging.getLogger("urllib3").setLevel(logging.CRITICAL)

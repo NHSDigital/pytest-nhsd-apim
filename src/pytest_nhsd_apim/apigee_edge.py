@@ -31,7 +31,6 @@ def _apigee_edge_session(nhsd_apim_config):
     return session
 
 
-
 @pytest.fixture(scope="session")
 @log_method
 def _apigee_app_base_url(nhsd_apim_config):
@@ -87,9 +86,6 @@ def _identity_service_proxy(
     return _get_proxy_json(_apigee_edge_session, url)
 
 
-
-
-
 @pytest.fixture()
 @log_method
 def _apigee_proxy(_apigee_edge_session, nhsd_apim_config, nhsd_apim_proxy_name):
@@ -97,8 +93,11 @@ def _apigee_proxy(_apigee_edge_session, nhsd_apim_config, nhsd_apim_proxy_name):
     Get the current revision deployed and pull proxy metadata.
     """
     org = nhsd_apim_config["APIGEE_ORGANIZATION"]
-    apigee_edge_api_proxy_url = APIGEE_BASE_URL + f"organizations/{org}/apis/{nhsd_apim_proxy_name}"
+    apigee_edge_api_proxy_url = (
+        APIGEE_BASE_URL + f"organizations/{org}/apis/{nhsd_apim_proxy_name}"
+    )
     return _get_proxy_json(_apigee_edge_session, apigee_edge_api_proxy_url)
+
 
 @log_method
 def get_all_products(_apigee_edge_session, nhsd_apim_config):
@@ -118,7 +117,9 @@ def get_all_products(_apigee_edge_session, nhsd_apim_config):
             got_all_products = True
     return products
 
+
 _APIGEE_PRODUCTS = []
+
 
 @pytest.fixture()
 @log_method
@@ -134,15 +135,19 @@ def _proxy_products(_apigee_edge_session, nhsd_apim_proxy_name, nhsd_apim_config
     """
     global _APIGEE_PRODUCTS
     proxy_products = [
-        product for product in _APIGEE_PRODUCTS if nhsd_apim_proxy_name in product["proxies"]
+        product
+        for product in _APIGEE_PRODUCTS
+        if nhsd_apim_proxy_name in product["proxies"]
     ]
-    
+
     if len(proxy_products) == 0:
         # Refresh the list and try again...
         _APIGEE_PRODUCTS = get_all_products(_apigee_edge_session, nhsd_apim_config)
 
     proxy_products = [
-        product for product in _APIGEE_PRODUCTS if nhsd_apim_proxy_name in product["proxies"]
+        product
+        for product in _APIGEE_PRODUCTS
+        if nhsd_apim_proxy_name in product["proxies"]
     ]
     if len(proxy_products) == 0:
         raise ValueError(f"No products grant access to proxy {nhsd_apim_proxy_name}")
@@ -162,6 +167,20 @@ def _get_proxy_url(proxy_json):
     proxy_url = prefix + "api.service.nhs.uk/" + proxy_json["basepaths"][0]
     return proxy_url
 
+@log_method
+def _get_keycloak_url(proxy_json):
+    """
+    Construct the relevant keycloak backend urls
+    """
+    env = proxy_json["environment"]
+    realm_base_url = "https://identity.ptl.api.platform.nhs.uk/auth/realms"
+    backend_provider_urls = {
+        "nhs-cis2": f"{realm_base_url}/Cis2-mock-{env}/protocol/openid-connect",
+        "nhs-login": f"{realm_base_url}/NHS-Login-mock-{env}/protocol/openid-connect",
+    }
+
+    return backend_provider_urls
+
 
 @pytest.fixture()
 @log_method
@@ -171,6 +190,13 @@ def nhsd_apim_proxy_url(_apigee_proxy):
     """
     return _get_proxy_url(_apigee_proxy)
 
+@pytest.fixture()
+@log_method
+def apigee_environment(_apigee_proxy):
+    """
+    Apigee environment of the proxy under test.
+    """
+    return _apigee_proxy["environment"]
 
 @pytest.fixture()
 @log_method
@@ -181,6 +207,16 @@ def identity_service_base_url(_identity_service_proxy):
     if _identity_service_proxy is None:
         return None
     return _get_proxy_url(_identity_service_proxy)
+
+@pytest.fixture()
+@log_method
+def keycloak_realm_urls(_identity_service_proxy):
+    """
+    Base URL of the identity-service proxy we will use to authenticate.
+    """
+    if _identity_service_proxy is None:
+        return None
+    return _get_keycloak_url(_identity_service_proxy)
 
 
 @pytest.fixture()
@@ -214,41 +250,26 @@ def _identity_service_proxy_name(
     _identity_service_proxy_names, nhsd_apim_authorization
 ):
     """
-    Make a reasonable choice about which identity-service proxy to
-    use.
+    Make a reasonable choice about which identity-service proxy to use.
 
-    We have a very dumb 'simulated_auth' app, which was the original
-    and is typically what our internal environments point to.
+    We have a keycloak instance, which is a proper OIDC provider, which is
+    pointed to by identity-service proxies with "mock" in the name.
 
-    Second, and definitively better, we have a keycloak instance,
-    which is a proper OIDC provider, which is pointed to by
-    identity-service proxies with "mock" in the name.
-
-    You should prefer keycloak over simulated auth.  Return None if
-    there's no identity-service proxies, though this should probably
-    never happen.
+    Return None if there's no identity-service proxies, though this should
+    probably never happen.
     """
     if not _identity_service_proxy_names:  # empty list
         return None
     if not nhsd_apim_authorization:
         return None
 
-    generation = nhsd_apim_authorization["generation"]
-    if generation == 1:  # prefer one without "mock" in the name.
-        simulated_auth = next(
-            filter(lambda name: "-mock" not in name, _identity_service_proxy_names),
-            None,
-        )
-        if simulated_auth:
-            return simulated_auth
-    elif generation == 2:  # prefer one with "mock" in the name.
-        keycloak = next(
-            filter(lambda name: "-mock" in name, _identity_service_proxy_names), None
-        )
-        if keycloak:
-            return keycloak
+    keycloak = next(
+        filter(lambda name: "-mock" in name, _identity_service_proxy_names), None
+    )
+    if keycloak:
+        return keycloak
     warnings.warn(
-        f"Unable to find mock auth generation {generation} in {_identity_service_proxy_names}."
+        f"Unable to find mock auth generation 2 in {_identity_service_proxy_names}."
     )
     return _identity_service_proxy_names[0]
 
@@ -283,17 +304,18 @@ def _proxy_product_with_scope(_scope, _proxy_products, nhsd_apim_proxy_name):
 @pytest.fixture(scope="session")
 @log_method
 def test_app(nhsd_apim_test_app) -> Callable:
-    warnings.warn(
-        f"test_app fixture is deprecated. Use nhsd_apim_test_app instead."
-    )
+    warnings.warn(f"test_app fixture is deprecated. Use nhsd_apim_test_app instead.")
     return nhsd_apim_test_app
 
 
 _TEST_APP = None
 
+
 @pytest.fixture(scope="session")
 @log_method
-def nhsd_apim_test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Callable:
+def nhsd_apim_test_app(
+    _create_test_app, _apigee_edge_session, _apigee_app_base_url
+) -> Callable:
     """
     A Callable that gets you the current state of the test app.
     """
@@ -378,10 +400,7 @@ def get_matching_creds(app, product_name):
 
 @log_method
 def get_app_credentials_for_product(
-    apigee_app_base_url,
-    apigee_edge_session,
-    app,
-    product_name,
+    apigee_app_base_url, apigee_edge_session, app, product_name
 ):
     matching_creds = get_matching_creds(app, product_name)
     if matching_creds is not None:
@@ -437,7 +456,6 @@ def _apigee_edge_session(nhsd_apim_config):
     return session
 
 
-
 @pytest.fixture(scope="session")
 def nhsd_apim_pre_create_app():
     """
@@ -446,9 +464,15 @@ def nhsd_apim_pre_create_app():
     """
     yield
 
+
 @pytest.fixture(scope="session")
 @log_method
-def _create_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_url, nhsd_apim_pre_create_app):
+def _create_test_app(
+    _apigee_app_base_url,
+    _apigee_edge_session,
+    jwt_public_key_url,
+    nhsd_apim_pre_create_app,
+):
     """
     Create an ephemeral app that lasts the duration of the pytest
     session.
@@ -470,17 +494,21 @@ def _create_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_
     assert create_resp.status_code == 201, err_msg
 
     yield create_resp.json()
-    delete_resp = _apigee_edge_session.delete(
-        _apigee_app_base_url + "/" + app["name"]
-    )
+    delete_resp = _apigee_edge_session.delete(_apigee_app_base_url + "/" + app["name"])
     err_msg = f"Could not DELETE TestApp: `{app['name']}`.\tReason: {delete_resp.text}"
     assert delete_resp.status_code == 200, err_msg
     global _TEST_APP
     _TEST_APP = None
 
+
 @pytest.fixture(scope="function")
 @log_method
-def _create_function_scoped_test_app(_apigee_app_base_url, _apigee_edge_session, jwt_public_key_url, nhsd_apim_pre_create_app):
+def _create_function_scoped_test_app(
+    _apigee_app_base_url,
+    _apigee_edge_session,
+    jwt_public_key_url,
+    nhsd_apim_pre_create_app,
+):
     """
     Create an ephemeral app that lasts the duration of the pytest
     test.
@@ -502,9 +530,7 @@ def _create_function_scoped_test_app(_apigee_app_base_url, _apigee_edge_session,
     assert create_resp.status_code == 201, err_msg
 
     yield create_resp.json()
-    delete_resp = _apigee_edge_session.delete(
-        _apigee_app_base_url + "/" + app["name"]
-    )
+    delete_resp = _apigee_edge_session.delete(_apigee_app_base_url + "/" + app["name"])
     err_msg = f"Could not DELETE TestApp: `{app['name']}`.\tReason: {delete_resp.text}"
     assert delete_resp.status_code == 200, err_msg
     global _TEST_APP
