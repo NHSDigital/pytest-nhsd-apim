@@ -85,9 +85,9 @@ def _nhsd_apim_auth_token_data(
     _test_app_callback_url,
     _keycloak_client_credentials,
     identity_service_base_url,
-    keycloak_realm_urls,
     jwt_private_key_pem,
     jwt_public_key_id,
+    apigee_environment,
 ):
     """
     Main entrypoint to pytest_nhsd_apim.
@@ -110,6 +110,7 @@ def _nhsd_apim_auth_token_data(
                 _test_app_credentials["consumerKey"],
                 jwt_private_key_pem,
                 jwt_public_key_id,
+                apigee_environment,
                 force_new_token=nhsd_apim_authorization["force_new_token"],
             )
             return token_data
@@ -131,6 +132,7 @@ def _nhsd_apim_auth_token_data(
             _test_app_callback_url,
             backend_provider_names[access],
             login_form,
+            apigee_environment,
             force_new_token=nhsd_apim_authorization["force_new_token"],
         )
 
@@ -143,7 +145,7 @@ def _nhsd_apim_auth_token_data(
             jwt_private_key_pem,
             jwt_public_key_id,
             backend_provider_names[access],
-            keycloak_realm_urls,
+            apigee_environment,
             force_new_token=nhsd_apim_authorization["force_new_token"],
         )
     else:

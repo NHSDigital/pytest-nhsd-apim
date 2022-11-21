@@ -1,97 +1,26 @@
 from typing import Literal, Dict, Optional
 import json
 import base64
-from urllib.parse import urlparse, parse_qs
-from time import time
-import uuid
-from functools import lru_cache, wraps
+from functools import lru_cache
 
 import pytest
-import requests
-from lxml import html
-import jwt  # https://github.com/jpadilla/pyjwt
+
 from authlib.jose import jwk
 from Crypto.PublicKey import RSA
 
-from .log import log, log_method
+from .log import log_method
 from .token_cache import cache_tokens
 
-
-@log_method
-def _session():
-    """
-    TLDR: We MUST clear cookies between keycloak logins.
-
-    One of keycloak's features is that it gives a session cookie when
-    we GET the login page.  It needs that session cookie when we
-    submit the login form.  And it uses that same session cookie as
-    our keycloak authentication.
-
-    This is an issue if we use the same requests.Session object
-    (without clearing cookies) to try and authenticate multiple users.
-    After the first log in we remain logged in between tests.
-    """
-    # The whole purpose of this function is to draw people's attention
-    # to ^this docstring^, not to save you a few keystrokes.
-    return requests.session()
-
-
-@log_method
-@cache_tokens
-def get_access_token_from_mock(
-    client_id: str,
-    client_secret: str,
-    redirect_uri: str,
-    login_form: Dict[str, str],
-    keycloack_url: str
-):
-    """
-    This is the first step is User Restricted Separate Auth a.k.a Token
-    Exchange.  We get a set of tokens from our mock version of CIS2/NHS-LOGIN.
-    The reponse includes an ID token, which we will then pass to identity
-    service.  Identity service validates the ID *token*, and *exchanges* is it
-    for an access token for the NHSD APIM proxies (which probably includes the
-    proxy under test). 
-    
-    It is important to know that for nhs-login we are using client-id and secret
-    as supposed to be using signed jwt for authentication as described in the
-    documentation. This is so we can use this function to authenticate against
-    both providers and at the end of the day the token response from keycloak
-    will be the same regardless the authentication method.
-    """
-
-    login_session = _session()
-  
-    resp = login_session.get(
-        keycloack_url + "/auth",
-        params={
-            "response_type": "code",
-            "client_id": client_id,
-            "scope": "openid",
-            "redirect_uri": redirect_uri,
-        },
-    )
-    log.debug(resp.text)
-    tree = html.fromstring(resp.text)
-    form = tree.get_element_by_id("kc-form-login")
-    resp2 = login_session.post(form.action, data=login_form)
-    log.debug("*" * 100)
-    log.debug(resp2.content)
-    log.debug("*" * 100)
-    location = urlparse(resp2.history[-1].headers["location"])
-    params = parse_qs(location.query)
-    code = params["code"]
-    resp3 = login_session.post(
-        keycloack_url + "/token",
-        data={
-            "grant_type": "authorization_code",
-            "code": code,
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "redirect_uri": redirect_uri,
-        },
-    )
-    return resp3.json()
+from .identity_service import (
+    ClientCredentialsConfig,
+    ClientCredentialsAuthenticator,
+    AuthorizationCodeConfig,
+    AuthorizationCodeAuthenticator,
+    TokenExchangeConfig,
+    TokenExcchangeAuthenticator,
+    KeycloackUserConfig,
+    KeycloackUserAuthenticator,
+)
 
 
 @log_method
@@ -104,44 +33,41 @@ def get_access_token_via_user_restricted_flow_separate_auth(
     jwt_private_key,
     jwt_kid,
     auth_scope: Literal["nhs-login", "nhs-cis2"],
-    keycloack_urls
+    apigee_environment,
 ):
-    """
-    Gets an ID token from an identity provider, which would be CIS2
-    (healthcare_worker) or NHSLogin (patient), in production
-    environments, but for this test suite is our `ptl` keycloak
-    instance.
-
-    It then passes that ID token to identity-service, which validates
-    the token, and gives us an NHSD APIM access token in return.
-    """
-    # This is keycloak but for real token exchange, would be CIS2 or NHSLogin.
-    realm_url = keycloack_urls[auth_scope]
     if auth_scope == "nhs-cis2":
-        identity_provider_token_data = get_access_token_from_mock(
-            keycloak_client_credentials["cis2"]["client_id"],
-            keycloak_client_credentials["cis2"]["client_secret"],
-            keycloak_client_credentials["cis2"]["redirect_uri"],
-            login_form,
-            realm_url,
+        # Get token from keycloak
+        config = KeycloackUserConfig(
+            realm=f"Cis2-mock-{apigee_environment}",
+            client_id=keycloak_client_credentials["cis2"]["client_id"],
+            client_secret=keycloak_client_credentials["cis2"]["client_secret"],
+            login_form=login_form,
         )
-    else:
-        identity_provider_token_data = get_access_token_from_mock(
-            keycloak_client_credentials["nhs-login"]["client_id"],
-            keycloak_client_credentials["nhs-login"]["client_secret"],
-            keycloak_client_credentials["nhs-login"]["redirect_uri"],
-            login_form,
-            realm_url
-        )
+        authenticator = KeycloackUserAuthenticator(config=config)
+        id_token = authenticator.get_token()["id_token"]
 
-    token_data = get_access_token_via_signed_jwt_flow(
-        identity_service_base_url,
-        apigee_client_id,
-        jwt_private_key,
-        jwt_kid,
-        id_token=identity_provider_token_data["id_token"],
+    else:
+        # Get token from keycloak
+        config = KeycloackUserConfig(
+            realm=f"NHS-Login-mock-{apigee_environment}",
+            client_id=keycloak_client_credentials["nhs-login"]["client_id"],
+            client_secret=keycloak_client_credentials["nhs-login"]["client_secret"],
+            login_form=login_form,
+        )
+        authenticator = KeycloackUserAuthenticator(config=config)
+        id_token = authenticator.get_token()["id_token"]
+
+    # Exchange token
+    config = TokenExchangeConfig(
+        environment=apigee_environment,
+        identity_service_base_url=identity_service_base_url,
+        client_id=apigee_client_id,
+        jwt_private_key=jwt_private_key,
+        jwt_kid=jwt_kid,
+        id_token=id_token,
     )
-    return token_data
+    authenticator = TokenExcchangeAuthenticator(config=config)
+    return authenticator.get_token()
 
 
 @log_method
@@ -153,73 +79,20 @@ def get_access_token_via_user_restricted_flow_combined_auth(
     callback_url: str,
     auth_scope: Literal["nhs-login", "nhs-cis2"],
     login_form: Dict[str, str],
+    apigee_environment,
 ):
-    """
-    Complete the user-restricted authorization journey for CIS2 or NHS-LOGIN using
-    our auth endpoint.
-
-    This webpage does a pretty good job of explaining the journey:
-    https://digital.nhs.uk/developer/guides-and-documentation/security-and-authorisation/user-restricted-restful-apis-nhs-cis2-combined-authentication-and-authorisation
-    """
-    login_session = _session()
-
-    # 1. Hit `authorize` endpoint w/ required query params --> we
-    # are redirected to the simulated_auth page. The requests package
-    # follows those redirects.
-    authorize_response = get_authorize_endpoint_response(
-        login_session, identity_service_base_url, client_id, callback_url, auth_scope
+    config = AuthorizationCodeConfig(
+        environment=apigee_environment,
+        callback_url=callback_url,
+        auth_url=f"{identity_service_base_url}/authorize",
+        token_url=f"{identity_service_base_url}/token",
+        client_id=client_id,
+        client_secret=client_secret,
+        scope=auth_scope,
+        login_form=login_form,
     )
-
-    authorize_form = get_authorization_form(authorize_response.content.decode())
-
-    # 2. Parse the login page.  For keycloack this presents an
-    # HTML form, which must be filled in with valid data.  The tester
-    # can submits their login data with the `login_form` field.
-
-    form_submission_data = get_authorize_form_submission_data(
-        authorize_form, login_form
-    )
-
-    # form_submission_data["username"] = 656005750104
-    #     # And here we inject a valid mock username for keycloak.
-    #     # For reference some valid cis2 mock usernames are...
-    #     # 656005750104 	surekha.kommareddy@nhs.net
-    #     # 656005750105 	darren.mcdrew@nhs.net
-    #     # 656005750106 	riley.jones@nhs.net
-    #     # 656005750107 	shirley.bryne@nhs.net
-
-    #     # And some valid nhs-login mock usernames are...
-    #     # 9912003071      for High - P9 
-    #     # 9912003072      for Medium - P5
-    #     # 9912003073      for Low - P0
-
-    # 3. POST the filled in form. This is equivalent to clicking the
-    # "Login" button if we were a human.
-    response_identity_service_login = log_in_identity_service_provider(
-        login_session, authorize_response, authorize_form, form_submission_data
-    )
-    # 4. The mock auth redirected us back to the
-    # identity-service, which redirected us to whatever our app's
-    # callback-url was set to.  We don't actually care about the
-    # content our callback-url page, we just need the auth_code that
-    # was provided in the redirect.
-    auth_code = get_auth_code_from_mock_auth(response_identity_service_login)
-
-    # 5. Finally, get an access token.
-    resp = login_session.post(
-        f"{identity_service_base_url}/token",
-        data={
-            "grant_type": "authorization_code",
-            "code": auth_code,
-            "redirect_uri": callback_url,
-            "client_id": client_id,
-            "client_secret": client_secret,
-        },
-    )
-    resp.raise_for_status()
-
-    # 6. Profit
-    return resp.json()
+    authenticator = AuthorizationCodeAuthenticator(config=config)
+    return authenticator.get_token()
 
 
 @log_method
@@ -229,58 +102,17 @@ def get_access_token_via_signed_jwt_flow(
     client_id: str,
     jwt_private_key: str,
     jwt_kid: str,
-    id_token: Optional[str] = None,
+    apigee_environment,
 ):
-    """
-    This pattern is explained here.
-    https://digital.nhs.uk/developer/guides-and-documentation/security-and-authorisation/application-restricted-restful-apis-signed-jwt-authentication
-
-    Actually getting an access token is pretty simple as the "hard
-    stuff" has already been done, getting a key-pair and attaching the
-    public-key URL to our application.
-
-    We just sign a request to the token endpoint with our private key,
-    the authorization server gets the public key (from the URL we gave
-    when we created the application) and verifies the private key
-    corresponding to our public key signed the request.  Then it gives
-    us a token.
-
-    For application restricted access no `extra_data` is needed.
-    """
-    url = f"{identity_service_base_url}/token"
-    claims = {
-        "sub": client_id,
-        "iss": client_id,
-        "jti": str(uuid.uuid4()),
-        "aud": url,
-        "exp": int(time()) + 300,  # 5 minutes in the future
-    }
-
-    additional_headers = {"kid": jwt_kid}
-    client_assertion = jwt.encode(
-        claims, jwt_private_key, algorithm="RS512", headers=additional_headers
+    config = ClientCredentialsConfig(
+        environment=apigee_environment,
+        identity_service_base_url=identity_service_base_url,
+        client_id=client_id,
+        jwt_private_key=jwt_private_key,
+        jwt_kid=jwt_kid,
     )
-
-    # Then we are doing token exchange, which requires a different grant_type
-    if id_token:
-        data = {
-            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
-            "subject_token_type": "urn:ietf:params:oauth:token-type:id_token",
-            "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-            "subject_token": id_token,
-            "client_assertion": client_assertion,
-        }
-    else:
-        data = {
-            "grant_type": "client_credentials",
-            "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-            "client_assertion": client_assertion,
-        }
-
-    resp = requests.post(url, data=data)
-    if resp.status_code != 200:
-        raise RuntimeError(f"{resp.status_code}: {resp.text}")
-    return resp.json()
+    authenticator = ClientCredentialsAuthenticator(config=config)
+    return authenticator.get_token()
 
 
 @lru_cache(maxsize=None)
@@ -348,77 +180,3 @@ def jwt_public_key_url(jwt_public_key):
     jwt_public_key_string = json.dumps(jwt_public_key)
     encoded_public_key_bytes = base64.urlsafe_b64encode(jwt_public_key_string.encode())
     return f"https://internal-dev.api.service.nhs.uk/mock-jwks/{encoded_public_key_bytes.decode()}"
-
-
-@log_method
-def get_authorize_endpoint_response(
-    session: requests.Session,
-    identity_service_base_url,
-    client_id,
-    callback_url,
-    auth_scope: Literal["nhs-login", "nhs-cis2"],
-):
-    authorize_url = f"{identity_service_base_url}/authorize"
-    resp = session.get(
-        authorize_url,
-        params={
-            "client_id": client_id,
-            "redirect_uri": callback_url,
-            "response_type": "code",
-            "scope": auth_scope,
-            "state": "1234567890",
-        },
-    )
-    if resp.status_code != 200:
-        raise RuntimeError(
-            f"{authorize_url} request returned {resp.status_code}: {resp.text}"
-        )
-    return resp
-
-
-@log_method
-def get_authorize_form_submission_data(authorize_form, login_options):
-    inputs = list(authorize_form.inputs)
-
-    form_submission_data = {}
-    # This loop picks up the pre-populated defaults, which is
-    # sufficient for simulated auth. Defaults can be appended to with
-    # the "login_options".
-    for _input in inputs:
-        input_data = dict(_input.items())
-        name = input_data["name"]
-        value = input_data["value"]
-        form_submission_data[name] = value
-
-    form_submission_data.update(login_options)
-    return form_submission_data
-
-
-@log_method
-def get_authorization_form(html_str):
-    log.debug(html_str)
-    tree = html.fromstring(html_str)
-    form = tree.forms[0]
-    return form
-
-
-@log_method
-def log_in_identity_service_provider(
-    session: requests.Session, authorize_response, authorize_form, form_submission_data
-):
-    form_submit_url = authorize_form.action or authorize_response.request.url
-    resp = session.request(
-        authorize_form.method, form_submit_url, data=form_submission_data
-    )
-    return resp
-
-
-@log_method
-def get_auth_code_from_mock_auth(response_identity_service_login):
-    qs = urlparse(response_identity_service_login.history[-1].headers["Location"]).query
-    auth_code = parse_qs(qs)["code"]
-    if isinstance(auth_code, list):
-        # in case there's multiple, this was a bug at one stage
-        auth_code = auth_code[0]
-
-    return auth_code
