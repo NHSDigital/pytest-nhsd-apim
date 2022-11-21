@@ -36,8 +36,8 @@ class ApigeeConfig(BaseModel):
         return f"{prefix}{host}{path}"
 
 
-class KeycloackConfig(BaseModel):
-    """Basic Keycloack config"""
+class KeycloakConfig(BaseModel):
+    """Basic Keycloak config"""
 
     realm: Literal[
         "Cis2-mock-internal-dev",
@@ -59,7 +59,7 @@ class KeycloackConfig(BaseModel):
         return f"{prefix}{host}{path}"
 
 
-class KeycloackUserConfig(KeycloackConfig):
+class KeycloakUserConfig(KeycloakConfig):
     client_id: str
     client_secret: str
     redirect_uri: HttpUrl = "https://example.org"
@@ -81,7 +81,7 @@ class AuthorizationCodeConfig(ApigeeConfig):
     # The dream is to suport all the auth methods in all the environments
     # however this is only true for client_credentials at the time of writing
     # this library, we dont have at the moment a complete map between identity
-    # service deployment environments and keycloack realms so authorization_code
+    # service deployment environments and keycloak realms so authorization_code
     # and token_exchange are only supported in internal-dev, internal-qa and
     # int. We use validators to handle this and when the moment comes we can
     # just delete them.
@@ -280,7 +280,7 @@ class AuthorizationCodeAuthenticator(Authenticator):
         authorize_form = self._get_authorization_form(
             authorize_response.content.decode()
         )
-        # 2. Parse the login page.  For keycloack this presents an
+        # 2. Parse the login page.  For keycloak this presents an
         # HTML form, which must be filled in with valid data.  The tester
         # can submits their login data with the `login_form` field.
 
@@ -331,7 +331,7 @@ class AuthorizationCodeAuthenticator(Authenticator):
         return resp.json()
 
 
-class KeycloackUserAuthenticator(Authenticator):
+class KeycloakUserAuthenticator(Authenticator):
     """
     This is the first step is User Restricted Separate Auth a.k.a Token
     Exchange.  We get a set of tokens from our mock version of CIS2/NHS-LOGIN.
@@ -351,7 +351,7 @@ class KeycloackUserAuthenticator(Authenticator):
     new authenticator class...
     """
 
-    def __init__(self, config=KeycloackUserConfig) -> None:
+    def __init__(self, config=KeycloakUserConfig) -> None:
         self.config = config
 
     def get_token(self):

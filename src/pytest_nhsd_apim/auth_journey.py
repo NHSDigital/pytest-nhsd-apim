@@ -18,8 +18,8 @@ from .identity_service import (
     AuthorizationCodeAuthenticator,
     TokenExchangeConfig,
     TokenExcchangeAuthenticator,
-    KeycloackUserConfig,
-    KeycloackUserAuthenticator,
+    KeycloakUserConfig,
+    KeycloakUserAuthenticator,
 )
 
 
@@ -37,24 +37,24 @@ def get_access_token_via_user_restricted_flow_separate_auth(
 ):
     if auth_scope == "nhs-cis2":
         # Get token from keycloak
-        config = KeycloackUserConfig(
+        config = KeycloakUserConfig(
             realm=f"Cis2-mock-{apigee_environment}",
             client_id=keycloak_client_credentials["cis2"]["client_id"],
             client_secret=keycloak_client_credentials["cis2"]["client_secret"],
             login_form=login_form,
         )
-        authenticator = KeycloackUserAuthenticator(config=config)
+        authenticator = KeycloakUserAuthenticator(config=config)
         id_token = authenticator.get_token()["id_token"]
 
     else:
         # Get token from keycloak
-        config = KeycloackUserConfig(
+        config = KeycloakUserConfig(
             realm=f"NHS-Login-mock-{apigee_environment}",
             client_id=keycloak_client_credentials["nhs-login"]["client_id"],
             client_secret=keycloak_client_credentials["nhs-login"]["client_secret"],
             login_form=login_form,
         )
-        authenticator = KeycloackUserAuthenticator(config=config)
+        authenticator = KeycloakUserAuthenticator(config=config)
         id_token = authenticator.get_token()["id_token"]
 
     # Exchange token
