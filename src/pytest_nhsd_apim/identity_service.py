@@ -1,3 +1,10 @@
+"""
+This is a self contain wraper for a bunch of authentication methods in APIM. NOT
+ONLY the identity service is taking into account in here, you will also find
+authenticators for keycloack and more... so feel free to keep adding
+authenticators here and maybe move this hole file to its own library.
+"""
+
 import uuid
 from time import time
 from typing import Literal
@@ -131,6 +138,10 @@ class KeycloakSignedJWTConfig:
     pass
 
 
+class NHSLoginConfig:
+    pass
+
+
 class BananaAuthenticatorConfig:  # Placeholder
     pass
 
@@ -243,8 +254,8 @@ class AuthorizationCodeAuthenticator(Authenticator):
         resp = session.request(
             authorize_form.method, form_submit_url, data=form_submission_data
         )
-        #TODO: Investigate why when using the fixtures it returns 404 and when
-        #using with external credentials returns 200
+        # TODO: Investigate why when using the fixtures it returns 404 and when
+        # using with external credentials returns 200
         # if resp.status_code != 200:
         #     raise RuntimeError(
         #         f"{form_submit_url} request returned {resp.status_code}: {resp.text}"
@@ -430,9 +441,43 @@ class KeycloakSignedJWTAuthenticator(Authenticator):
 
     def __init__(self, config=KeycloakSignedJWTConfig) -> None:
         self.config = config
+        raise NotImplemented(f"TODO")
 
     def get_token(self):
-        pass
+        raise NotImplemented(f"TODO")
+
+
+class NHSLoginSandpitAuthenticator(Authenticator):
+    """Authenticates you against NHS-Login sandpit environment"""
+
+    def __init__(self, config=NHSLoginConfig) -> None:
+        self.config = config
+        raise NotImplemented(f"TODO")
+
+    def get_token(self):
+        raise NotImplemented(f"TODO")
+
+
+class NHSLoginAosAuthenticator(Authenticator):
+    """Authenticates you against NHS-Login aos environment"""
+
+    def __init__(self, config=NHSLoginConfig) -> None:
+        self.config = config
+        raise NotImplemented(f"TODO")
+
+    def get_token(self):
+        raise NotImplemented(f"TODO")
+
+
+class NHSLoginProdAuthenticator(Authenticator):
+    """Authenticates you against NHS-Login prod environment"""
+
+    def __init__(self, config=NHSLoginConfig) -> None:
+        self.config = config
+        raise NotImplemented(f"TODO")
+
+    def get_token(self):
+        raise NotImplemented(f"TODO")
 
 
 class BananaAuthenticator(Authenticator):  # Placeholder
@@ -440,6 +485,7 @@ class BananaAuthenticator(Authenticator):  # Placeholder
 
     def __init__(self, config=BananaAuthenticatorConfig) -> None:
         self.config = config
+        raise NotImplemented(f"TODO")
 
     def get_token(self):
-        pass
+        raise NotImplemented(f"TODO")

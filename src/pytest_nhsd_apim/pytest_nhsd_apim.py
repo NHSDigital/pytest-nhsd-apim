@@ -47,7 +47,6 @@ from .apigee_edge import (
     _test_app_callback_url,
     _test_app_credentials,
     identity_service_base_url,
-    keycloak_realm_urls,
     nhsd_apim_pre_create_app,
     nhsd_apim_proxy_url,
     test_app,

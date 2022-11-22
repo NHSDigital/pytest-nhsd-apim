@@ -3,9 +3,9 @@ from typing import Literal, Union, Dict, Any
 
 import pytest
 from typing_extensions import Annotated
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
-from .log import log, log_method
+from .log import log_method
 
 
 class BaseAuthorization(BaseModel):
