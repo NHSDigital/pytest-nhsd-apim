@@ -2,7 +2,7 @@
 This is a self contain wraper for a bunch of authentication methods in APIM. NOT
 ONLY the identity service is taking into account in here, you will also find
 authenticators for keycloack and more... so feel free to keep adding
-authenticators here and maybe move this hole file to its own library.
+authenticators here and maybe move this file to its own library.
 """
 
 import uuid
