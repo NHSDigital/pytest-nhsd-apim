@@ -167,21 +167,6 @@ def _get_proxy_url(proxy_json):
     proxy_url = prefix + "api.service.nhs.uk/" + proxy_json["basepaths"][0]
     return proxy_url
 
-@log_method
-def _get_keycloak_url(proxy_json):
-    """
-    Construct the relevant keycloak backend urls
-    """
-    env = proxy_json["environment"]
-    realm_base_url = "https://identity.ptl.api.platform.nhs.uk/auth/realms"
-    backend_provider_urls = {
-        "nhs-cis2": f"{realm_base_url}/Cis2-mock-{env}/protocol/openid-connect",
-        "nhs-login": f"{realm_base_url}/NHS-Login-mock-{env}/protocol/openid-connect",
-    }
-
-    return backend_provider_urls
-
-
 @pytest.fixture()
 @log_method
 def nhsd_apim_proxy_url(_apigee_proxy):
@@ -207,16 +192,6 @@ def identity_service_base_url(_identity_service_proxy):
     if _identity_service_proxy is None:
         return None
     return _get_proxy_url(_identity_service_proxy)
-
-@pytest.fixture()
-@log_method
-def keycloak_realm_urls(_identity_service_proxy):
-    """
-    Base URL of the identity-service proxy we will use to authenticate.
-    """
-    if _identity_service_proxy is None:
-        return None
-    return _get_keycloak_url(_identity_service_proxy)
 
 
 @pytest.fixture()

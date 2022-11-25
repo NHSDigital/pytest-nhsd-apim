@@ -6,6 +6,17 @@ These tests actually work!
 import json
 import pytest
 import requests
+from pytest_nhsd_apim.identity_service import (
+    ClientCredentialsConfig,
+    ClientCredentialsAuthenticator,
+    AuthorizationCodeConfig,
+    AuthorizationCodeAuthenticator,
+    KeycloakUserConfig,
+    KeycloakUserAuthenticator,
+    TokenExchangeConfig,
+    TokenExcchangeAuthenticator,
+)
+
 
 def test_ping_endpoint(nhsd_apim_proxy_url):
     """
@@ -19,6 +30,7 @@ def test_ping_endpoint(nhsd_apim_proxy_url):
     assert resp.status_code == 200
     ping_data = json.loads(resp.text)
     assert "version" in ping_data
+
 
 def test_status_endpoint(nhsd_apim_proxy_url, status_endpoint_auth_headers):
     """
@@ -96,7 +108,9 @@ def test_app_level3_access_repeatedly(count, nhsd_apim_auth_headers):
 # If for any reason you want to override the caching
 # the force_new_token flag can be added
 @pytest.mark.parametrize(("count"), [1, 2, 3])
-@pytest.mark.nhsd_apim_authorization({"access": "application", "level": "level3", "force_new_token": True})
+@pytest.mark.nhsd_apim_authorization(
+    {"access": "application", "level": "level3", "force_new_token": True}
+)
 def test_app_level3_with_force_new_token(count, nhsd_apim_auth_headers):
     def th(i):
         if i == 1:
@@ -110,6 +124,7 @@ def test_app_level3_with_force_new_token(count, nhsd_apim_auth_headers):
     print(
         f"This is the {count}{th(count)} test using different credentials - {nhsd_apim_auth_headers}"
     )
+
 
 # You can include marks in a pytest parametrization to reduce
 # boiler plate. This simple example matches authorization headers to
@@ -247,10 +262,11 @@ def test_healthcare_work_user_restricted_separate_auth(
     resp1 = requests.get(aal3_url, headers=nhsd_apim_auth_headers)
     assert resp1.status_code == 200
 
+
 # we can also authenticate directly with our Mock NHS-Login instance, get an ID
 # token, and exchange it via a call to our oauth server for an NHSD APIM access
 # token. To use separate authentication instead, add authentication="separate"
-# to the nhsd_apim_authorization mark.   
+# to the nhsd_apim_authorization mark.
 @pytest.mark.nhsd_apim_authorization(
     {
         "access": "patient",
@@ -273,10 +289,127 @@ def test_patient_user_restricted_separate_auth(
 # nhsd_apim_authorization marker.  This allows you to parameterize
 # unauthenicated access tests in the same way as authenticated API calls.
 @pytest.mark.nhsd_apim_authorization()
-def test_no_authorization_explicitly_marked(nhsd_apim_proxy_url, nhsd_apim_auth_headers):
+def test_no_authorization_explicitly_marked(
+    nhsd_apim_proxy_url, nhsd_apim_auth_headers
+):
     assert nhsd_apim_auth_headers == {}
+
 
 # You can also do it without marking, though this raises a warning.
-def test_no_authorization_with_not_explicitly_marked(nhsd_apim_proxy_url, nhsd_apim_auth_headers):
+def test_no_authorization_with_not_explicitly_marked(
+    nhsd_apim_proxy_url, nhsd_apim_auth_headers
+):
     assert nhsd_apim_auth_headers == {}
 
+
+# You can also use the authenticators directly in case you want to run the tests
+# using a specific app already available in Apigee, leaving all the marker magic
+# behind this is how you can implement the diferent authenticators
+def test_client_credentials_authenticator(
+    _test_app_credentials, _jwt_keys, apigee_environment
+):
+
+    # 1. Set your app config
+    config = ClientCredentialsConfig(
+        environment=apigee_environment,
+        identity_service_base_url=f"https://{apigee_environment}.api.service.nhs.uk/oauth2",
+        client_id=_test_app_credentials["consumerKey"],
+        jwt_private_key=_jwt_keys["private_key_pem"],
+        jwt_kid="test-1",
+    )
+
+    # 2. Pass the config to the Authenticator
+    authenticator = ClientCredentialsAuthenticator(config=config)
+
+    # 3. Get your token
+    token_response = authenticator.get_token()
+    assert "access_token" in token_response
+    token = token_response["access_token"]
+
+    # 4. Use the token and confirm is valid
+    headers = {"Authorization": f"Bearer {token}"}
+    resp = requests.get(
+        f"https://{apigee_environment}.api.service.nhs.uk/mock-jwks/test-auth/app/level3",
+        headers=headers,
+    )
+    assert resp.status_code == 200
+
+
+def test_authorization_code_authenticator(_test_app_credentials, apigee_environment):
+
+    # 1. Set your app config
+    config = AuthorizationCodeConfig(
+        environment=apigee_environment,
+        identity_service_base_url=f"https://{apigee_environment}.api.service.nhs.uk/oauth2-mock",
+        callback_url="https://example.org/callback",
+        token_url=f"https://{apigee_environment}.api.service.nhs.uk/oauth2-mock/token",
+        client_id=_test_app_credentials["consumerKey"],
+        client_secret=_test_app_credentials["consumerSecret"],
+        scope="nhs-cis2",
+        login_form={"username": "656005750104"},
+    )
+
+    # 2. Pass the config to the Authenticator
+    authenticator = AuthorizationCodeAuthenticator(config=config)
+
+    # 3. Get your token
+    token_response = authenticator.get_token()
+    assert "access_token" in token_response
+    token = token_response["access_token"]
+
+    # 4. Use the token and confirm is valid
+    headers = {"Authorization": f"Bearer {token}"}
+    resp = requests.get(
+        f"https://{apigee_environment}.api.service.nhs.uk/mock-jwks/test-auth/nhs-cis2/aal3",
+        headers=headers,
+    )
+    assert resp.status_code == 200
+
+
+def test_token_exchange_authenticator(
+    _test_app_credentials, apigee_environment, _jwt_keys, _keycloak_client_credentials
+):
+    # This one is a bit more interesting since we first need to get a token from
+    # keycloak (our mock version of the NHS-Login provider) grab the id_token
+    # from that token and then make a call to the identity service to "exchange"
+    # the id_token for an Apigee access token.
+
+    # 1. Set yout keycloack config
+    config1 = KeycloakUserConfig(
+        realm=f"NHS-Login-mock-{apigee_environment}",
+        client_id=_keycloak_client_credentials["nhs-login"]["client_id"],
+        client_secret=_keycloak_client_credentials["nhs-login"]["client_secret"],
+        login_form={"username": "9912003071"},
+    )
+
+    # 2. Pass the config to the Authenticator
+    authenticator = KeycloakUserAuthenticator(config=config1)
+
+    # 3. Get your id_token
+    id_token = authenticator.get_token()["id_token"]
+
+    # 4. Set yout token exchange config
+    config = TokenExchangeConfig(
+        environment=apigee_environment,
+        identity_service_base_url=f"https://{apigee_environment}.api.service.nhs.uk/oauth2",
+        client_id=_test_app_credentials["consumerKey"],
+        jwt_private_key=_jwt_keys["private_key_pem"],
+        jwt_kid="test-1",
+        id_token=id_token,
+    )
+
+    # 5. Pass the config to the Authenticator
+    authenticator = TokenExcchangeAuthenticator(config=config)
+
+    # 6. Get your token
+    token_response = authenticator.get_token()
+    assert "access_token" in token_response
+    token = token_response["access_token"]
+
+    # 7. Use the token and confirm is valid
+    headers = {"Authorization": f"Bearer {token}"}
+    resp = requests.get(
+        f"https://{apigee_environment}.api.service.nhs.uk/mock-jwks/test-auth/nhs-login/P9",
+        headers=headers,
+    )
+    assert resp.status_code == 200
