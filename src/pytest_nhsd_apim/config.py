@@ -34,6 +34,9 @@ _PYTEST_CONFIG = {
         "help": "Developer that will own the test app.",
         "default": "apm-testing-internal-dev@nhs.net",
     },
+    "--apigee-app-id": {
+        "help": "Apigee ID of application under test."
+    },
     "--jwt-public-key-id": {
         "help": "Key ID ('kid') to select particular key.",
         "default": "test-1",

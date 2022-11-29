@@ -331,7 +331,7 @@ def nhsd_apim_test_app(
 @log_method
 @pytest.fixture(scope="session")
 def nhsd_apim_unsubscribe_test_app_from_all_products(
-    nhsd_apim_test_app, _apigee_edge_session, _apigee_app_base_url
+    nhsd_apim_test_app, _apigee_edge_session, _apigee_app_base_url, _test_app_id
 ):
     """
     Returns a callable that when run, will unsubscribe the test app
@@ -342,6 +342,10 @@ def nhsd_apim_unsubscribe_test_app_from_all_products(
     """
 
     def unsubscribe():
+        # If app already exists we don't want to modify
+        # its product subscriptions
+        if _test_app_id: return
+        
         app = nhsd_apim_test_app(force_refresh=True)
         app_name = app["name"]
         for cred in app["credentials"]:
@@ -375,12 +379,19 @@ def get_matching_creds(app, product_name):
 
 @log_method
 def get_app_credentials_for_product(
-    apigee_app_base_url, apigee_edge_session, app, product_name
+    apigee_app_base_url, apigee_edge_session, app, product_name, _test_app_id
 ):
     matching_creds = get_matching_creds(app, product_name)
     if matching_creds is not None:
         return matching_creds
 
+    # If app already exists we do not want to modify its
+    # subscriptions.
+    if _test_app_id is not None:
+        raise ValueError(
+            f"App with id {_test_app_id} does not have expected credentials"
+        )
+        
     # Use the apigee edge api to add another set of credentials
     # https://apidocs.apigee.com/docs/developer-apps/1/routes/organizations/%7Borg_name%7D/developers/%7Bdeveloper_email%7D/apps/%7Bapp_name%7D/put
     app["apiProducts"] = [product_name]
@@ -458,6 +469,7 @@ def _create_test_app(
     configurations should you need to do so.  See `app_credentials`
     for details.
     """
+    #TODO get rather than create, copy code for function scoped equivalent
 
     app = {
         "name": f"apim-auto-{uuid4()}",
@@ -516,3 +528,8 @@ def _create_function_scoped_test_app(
 @log_method
 def _test_app_callback_url(_create_test_app):
     return _create_test_app["callbackUrl"]
+
+@pytest.fixture(scope="session")
+@log_method
+def _test_app_id(nhsd_apim_config):
+    return nhsd_apim_config["APIGEE_APP_ID"]
