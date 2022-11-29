@@ -10,22 +10,21 @@ import requests
 from .apigee_edge import (
     _apigee_app_base_url,
     _apigee_edge_session,
+    _test_app_id,
+    apigee_environment,
     get_app_credentials_for_product,
     test_app,
-    apigee_environment,
 )
-
 from .log import log, log_method
-
 
 _SESSION = requests.session()
 
 
 @pytest.fixture()
 @log_method
-def _mock_jwks_api_key(_apigee_app_base_url, _apigee_edge_session, test_app, apigee_environment):
+def _mock_jwks_api_key(_apigee_app_base_url, _apigee_edge_session, test_app, apigee_environment, _test_app_id):
     creds = get_app_credentials_for_product(
-        _apigee_app_base_url, _apigee_edge_session, test_app(), f"mock-jwks-{apigee_environment}"
+        _apigee_app_base_url, _apigee_edge_session, test_app(), f"mock-jwks-{apigee_environment}", _test_app_id
     )
     return creds["consumerKey"]
 
