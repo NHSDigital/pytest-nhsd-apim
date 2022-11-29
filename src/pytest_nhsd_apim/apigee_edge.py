@@ -39,6 +39,12 @@ def _apigee_app_base_url(nhsd_apim_config):
     url = APIGEE_BASE_URL + f"organizations/{org}/developers/{dev}/apps"
     return url
 
+@pytest.fixture(scope="session")
+@log_method
+def _apigee_app_base_url_no_dev(nhsd_apim_config):
+    org = nhsd_apim_config["APIGEE_ORGANIZATION"]
+    url = APIGEE_BASE_URL + f"organizations/{org}/apps"
+    return url
 
 @functools.lru_cache(maxsize=None)
 @log_method
@@ -421,6 +427,7 @@ def nhsd_apim_pre_create_app():
 @log_method
 def _create_test_app(
     _apigee_app_base_url,
+    _apigee_app_base_url_no_dev,
     _apigee_edge_session,
     jwt_public_key_url,
     nhsd_apim_pre_create_app,
@@ -439,7 +446,7 @@ def _create_test_app(
 
     # Retrieving pre-existing app
     if not _test_app_id == "":
-        get_resp = _apigee_edge_session.get(_apigee_app_base_url + "/" + _test_app_id)
+        get_resp = _apigee_edge_session.get(_apigee_app_base_url_no_dev + "/" + _test_app_id)
         err_msg = f"Could not GET TestApp: {_test_app_id}.\tReason: {get_resp.text}"
         assert get_resp.status_code == 200, err_msg
         return get_resp.json()
@@ -483,7 +490,7 @@ def _create_function_scoped_test_app(
 
     # Retrieving pre-existing app
     if not _test_app_id == "":
-        get_resp = _apigee_edge_session.get(_apigee_app_base_url + "/" + _test_app_id)
+        get_resp = _apigee_edge_session.get(_apigee_app_base_url_no_dev + "/" + _test_app_id)
         err_msg = f"Could not GET TestApp: {_test_app_id}.\tReason: {get_resp.text}"
         assert get_resp.status_code == 200, err_msg
         return get_resp.json()

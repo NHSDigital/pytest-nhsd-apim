@@ -24,6 +24,7 @@ import pytest
 # dependencies of our public fixtures.
 from .apigee_edge import (
     _apigee_app_base_url,
+    _apigee_app_base_url_no_dev,
     _apigee_edge_session,
     _apigee_proxy,
     _create_function_scoped_test_app,
