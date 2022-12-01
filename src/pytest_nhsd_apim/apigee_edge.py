@@ -271,7 +271,7 @@ _TEST_APP = None
 
 @pytest.fixture(scope="session")
 @log_method
-def nhsd_apim_test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url) -> Callable:
+def nhsd_apim_test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url, _apigee_app_base_url_no_dev, _test_app_id) -> Callable:
     """
     A Callable that gets you the current state of the test app.
     """
@@ -300,7 +300,10 @@ def nhsd_apim_test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_
         global _TEST_APP
         if _TEST_APP and not force_refresh:
             return _TEST_APP
-        resp = _apigee_edge_session.get(_apigee_app_base_url + "/" + _create_test_app["name"])
+        if _test_app_id:
+            resp = _apigee_edge_session.get(_apigee_app_base_url_no_dev + "/" + _test_app_id)
+        else: 
+            resp = _apigee_edge_session.get(_apigee_app_base_url + "/" + _create_test_app["name"])
         _TEST_APP = resp.json()
         return _TEST_APP
 
@@ -449,21 +452,21 @@ def _create_test_app(
         get_resp = _apigee_edge_session.get(_apigee_app_base_url_no_dev + "/" + _test_app_id)
         err_msg = f"Could not GET TestApp: {_test_app_id}.\tReason: {get_resp.text}"
         assert get_resp.status_code == 200, err_msg
-        return get_resp.json()
+        yield get_resp.json()
+    else:
+        app = {
+            "name": f"apim-auto-{uuid4()}",
+            "callbackUrl": "https://example.org/callback",
+            "attributes": [{"name": "jwks-resource-url", "value": jwt_public_key_url}],
+        }
+        create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app)
+        err_msg = f"Could not CREATE TestApp: `{app['name']}`.\tReason: {create_resp.text}"
+        assert create_resp.status_code == 201, err_msg
 
-    app = {
-        "name": f"apim-auto-{uuid4()}",
-        "callbackUrl": "https://example.org/callback",
-        "attributes": [{"name": "jwks-resource-url", "value": jwt_public_key_url}],
-    }
-    create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app)
-    err_msg = f"Could not CREATE TestApp: `{app['name']}`.\tReason: {create_resp.text}"
-    assert create_resp.status_code == 201, err_msg
-
-    yield create_resp.json()
-    delete_resp = _apigee_edge_session.delete(_apigee_app_base_url + "/" + app["name"])
-    err_msg = f"Could not DELETE TestApp: `{app['name']}`.\tReason: {delete_resp.text}"
-    assert delete_resp.status_code == 200, err_msg
+        yield create_resp.json()
+        delete_resp = _apigee_edge_session.delete(_apigee_app_base_url + "/" + app["name"])
+        err_msg = f"Could not DELETE TestApp: `{app['name']}`.\tReason: {delete_resp.text}"
+        assert delete_resp.status_code == 200, err_msg
     global _TEST_APP
     _TEST_APP = None
 
@@ -493,24 +496,24 @@ def _create_function_scoped_test_app(
         get_resp = _apigee_edge_session.get(_apigee_app_base_url_no_dev + "/" + _test_app_id)
         err_msg = f"Could not GET TestApp: {_test_app_id}.\tReason: {get_resp.text}"
         assert get_resp.status_code == 200, err_msg
-        return get_resp.json()
+        yield get_resp.json()
+    else:
+        app = {
+            "name": f"apim-auto-{uuid4()}",
+            "callbackUrl": "https://example.org/callback",
+            "attributes": [{"name": "jwks-resource-url", "value": jwt_public_key_url}],
+        }
+        create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app)
+        err_msg = f"Could not CREATE TestApp: `{app['name']}`.\tReason: {create_resp.text}"
+        assert create_resp.status_code == 201, err_msg
 
-    app = {
-        "name": f"apim-auto-{uuid4()}",
-        "callbackUrl": "https://example.org/callback",
-        "attributes": [{"name": "jwks-resource-url", "value": jwt_public_key_url}],
-    }
-    create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app)
-    err_msg = f"Could not CREATE TestApp: `{app['name']}`.\tReason: {create_resp.text}"
-    assert create_resp.status_code == 201, err_msg
-
-    yield create_resp.json()
-    delete_resp = _apigee_edge_session.delete(_apigee_app_base_url + "/" + app["name"])
-    err_msg = f"Could not DELETE TestApp: `{app['name']}`.\tReason: {delete_resp.text}"
-    assert delete_resp.status_code == 200, err_msg
+        yield create_resp.json()
+        delete_resp = _apigee_edge_session.delete(_apigee_app_base_url + "/" + app["name"])
+        err_msg = f"Could not DELETE TestApp: `{app['name']}`.\tReason: {delete_resp.text}"
+        assert delete_resp.status_code == 200, err_msg
     global _TEST_APP
     _TEST_APP = None
-
+    
 
 @pytest.fixture(scope="session")
 @log_method
