@@ -39,7 +39,7 @@ class ApigeeProdCredentials(BaseSettings):
     apigee_nhsd_prod_passcode: Optional[str] = None
     apigee_access_token: Optional[str] = None
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def check_credentials_config(cls, values):
         if all(
             [
@@ -126,7 +126,7 @@ class ApigeeNonProdCredentials(BaseSettings):
     apigee_nhsd_nonprod_otp_key: Optional[str]
     apigee_access_token: Optional[str]
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def check_credentials_config(cls, values):
         if all(
             [
@@ -1081,10 +1081,3 @@ class KeystoreTrustoreAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
 
-
-# Testing stuff...
-
-config = ApigeeNonProdCredentials()
-client = ApigeeClient(config=config)
-developer_apps = DeveloperAppsAPI(email="lucas.fantini@nhs.net", client=client)
-print(developer_apps.list_apps())
