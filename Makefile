@@ -21,3 +21,4 @@ test:
 		echo $$f; \
 		poetry run pytest tests/test_examples.py -s --proxy-name=$$proxy --api-name=mock-jwks; \
 	done
+	poetry run pytest tests/test_apigee_apis.py
