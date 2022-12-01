@@ -7,39 +7,39 @@ import requests
 from jwt import ExpiredSignatureError
 from pydantic import BaseSettings, root_validator
 
+"""
+Reads auth_server/username/password/passcode/otp_uri from environment
+variables.
+
+These control what we send to the auth server.  Required environment
+variables depends on who is authenticating and the mechanism.
+
+All environment variables in the table below are prefixed with
+APIGEE_NHSD_NONPROD_ for nhsd-nonprod and, imaginatively,
+APIGEE_NHSD_PROD_ for nhsd-prod.  so AUTH_SERVER for prod =
+APIGEE_NHSD_PROD_AUTH_SERVER.
+
+|------------------------+---------------------------------|
+| Auth/user combo        | Required environment variables  |
+|------------------------+---------------------------------|
+| non-SAML               | USERNAME, PASSWORD, OTP_KEY     |
+| SAML machine users     | AUTH_SERVER, USERNAME, PASSWORD |
+| SAML non-machine users | AUTH_SERVER, PASSCODE           |
+|------------------------+---------------------------------|
+
+No attempt is made to recover if in invalid combination of environment
+variables is provided.
+"""
 
 
 class ApigeeProdCredentials(BaseSettings):
-    """
-    Reads auth_server/username/password/passcode/otp_uri from environment
-    variables.
-
-    These control what we send to the auth server.  Required environment
-    variables depends on who is authenticating and the mechanism.
-
-    All environment variables in the table below are prefixed with
-    APIGEE_NHSD_NONPROD_ for nhsd-nonprod and, imaginatively,
-    APIGEE_NHSD_PROD_ for nhsd-prod.  so AUTH_SERVER for prod =
-    APIGEE_NHSD_PROD_AUTH_SERVER.
-
-    |------------------------+---------------------------------|
-    | Auth/user combo        | Required environment variables  |
-    |------------------------+---------------------------------|
-    | non-SAML               | USERNAME, PASSWORD, OTP_KEY     |
-    | SAML machine users     | AUTH_SERVER, USERNAME, PASSWORD |
-    | SAML non-machine users | AUTH_SERVER, PASSCODE           |
-    |------------------------+---------------------------------|
-
-    No attempt is made to recover if in invalid combination of environment
-    variables is provided.
-    """
     auth_server: str = "nhs-digital-prod.login.apigee.com"
     apigee_nhsd_prod_username: Optional[str] = None
     apigee_nhsd_prod_password: Optional[str] = None
     apigee_nhsd_prod_passcode: Optional[str] = None
     apigee_access_token: Optional[str] = None
 
-    @root_validator(allow_reuse=True)
+    @root_validator
     def check_credentials_config(cls, values):
         if all(
             [
@@ -97,36 +97,13 @@ class ApigeeProdCredentials(BaseSettings):
 
 
 class ApigeeNonProdCredentials(BaseSettings):
-    """
-    Reads auth_server/username/password/passcode/otp_uri from environment
-    variables.
-
-    These control what we send to the auth server.  Required environment
-    variables depends on who is authenticating and the mechanism.
-
-    All environment variables in the table below are prefixed with
-    APIGEE_NHSD_NONPROD_ for nhsd-nonprod and, imaginatively,
-    APIGEE_NHSD_PROD_ for nhsd-prod.  so AUTH_SERVER for prod =
-    APIGEE_NHSD_PROD_AUTH_SERVER.
-
-    |------------------------+---------------------------------|
-    | Auth/user combo        | Required environment variables  |
-    |------------------------+---------------------------------|
-    | non-SAML               | USERNAME, PASSWORD, OTP_KEY     |
-    | SAML machine users     | AUTH_SERVER, USERNAME, PASSWORD |
-    | SAML non-machine users | AUTH_SERVER, PASSCODE           |
-    |------------------------+---------------------------------|
-
-    No attempt is made to recover if in invalid combination of environment
-    variables is provided.
-    """
     auth_server: str = "login.apigee.com"
     apigee_nhsd_nonprod_username: Optional[str]
     apigee_nhsd_nonprod_password: Optional[str]
     apigee_nhsd_nonprod_otp_key: Optional[str]
     apigee_access_token: Optional[str]
 
-    @root_validator(allow_reuse=True)
+    @root_validator
     def check_credentials_config(cls, values):
         if all(
             [
@@ -184,8 +161,28 @@ class ApigeeNonProdCredentials(BaseSettings):
 class ApigeeAuthenticator:
     def __init__(self, config: Union[ApigeeNonProdCredentials, ApigeeProdCredentials]) -> None:
         self.config = config
+        self._token = None
 
     def get_token(self):
+        if self._is_token_valid():
+            return self._token
+
+        self._token = self._get_fresh_token()
+        return self._token
+
+    def _is_token_valid(self):
+        if self._token:
+            # Verify the token is still valid...
+            # TODO have some leeway on the expiry
+            options = {"verify_signature": False, "verify_aud": False, "verify_exp": True}
+            try:
+                jwt.decode(self._token, options=options, leeway=10)
+                return True
+            except ExpiredSignatureError:
+                return False
+        return False
+
+    def _get_fresh_token(self):
         """
         Send a POST request to the authorization server.
 
@@ -215,24 +212,6 @@ class ApigeeAuthenticator:
 class RestClient(ABC):
     """Defines a generic rest client interface"""
 
-    @property
-    @abstractmethod
-    def base_url(self):
-        pass
-
-    @property
-    @abstractmethod
-    def org(self):
-        pass
-
-    @abstractmethod
-    def is_authenticated(self):
-        pass
-
-    @abstractmethod
-    def authenticate(self):
-        pass
-
     @abstractmethod
     def get(self):
         pass
@@ -251,67 +230,31 @@ class RestClient(ABC):
 
 
 class ApigeeClient(RestClient):
-    """
-    Apigee authenticated client. Before each operation (GET, POST, PUT, DELETE)
-    the client checks for the self.token: if it is none, then it gets one using
-    the authenticator, if there is one then it checks is not expired... if it is
-    then gets a new one using the authenticator. Otherwise uses the existing
-    valid access token
-    """
+    """A simple wraper to the requests client that basically adds a valid Apigee
+    token to the header and makes the base_url available as a property"""
 
     def __init__(self, config: Union[ApigeeNonProdCredentials, ApigeeProdCredentials]) -> None:
         self.token = None
         self.config = config
         self.authenticator = ApigeeAuthenticator(config=config)
-
-    def authenticate(self):
-        self.token = self.authenticator.get_token()
-        return self.token
-
-    def _session(self, *args, **kwargs) -> requests.Session:
-        """ Creates an authenticated session """
-        session = requests.session()
-        session.headers.update({"Authorization": f"Bearer {self.token}"})
-        return session
-
-    @property
-    def base_url(self):
-        return self.config.base_url
-
-    @property
-    def org(self):
-        return self.config.org
-
-    def is_authenticated(self):
-        if self.token:
-            # Verify the token is still valid...
-            options = {"verify_signature": False, "verify_aud": False, "verify_exp": True}
-            try:
-                jwt.decode(self.token, options=options)
-                return True
-            except ExpiredSignatureError:
-                return False
-        return False
+        self.base_url = config.base_url
+        self._session = requests.session()
 
     def get(self, *args, **kwargs) -> requests.Response:
-        if not self.is_authenticated():
-            self.authenticate()
-        return self._session().get(*args, **kwargs)
+        self._session.headers.update({"Authorization": f"Bearer {self.authenticator.get_token()}"})
+        return self._session.get(*args, **kwargs)
 
     def post(self, *args, **kwargs) -> requests.Response:
-        if not self.is_authenticated():
-            self.authenticate()
-        return self._session().post(*args, **kwargs)
+        self._session.headers.update({"Authorization": f"Bearer {self.authenticator.get_token()}"})
+        return self._session.post(*args, **kwargs)
 
     def put(self, *args, **kwargs) -> requests.Response:
-        if not self.is_authenticated():
-            self.authenticate()
-        return self._session().put(*args, **kwargs)
+        self._session.headers.update({"Authorization": f"Bearer {self.authenticator.get_token()}"})
+        return self._session.put(*args, **kwargs)
 
     def delete(self, *args, **kwargs) -> requests.Response:
-        if not self.is_authenticated():
-            self.authenticate()
-        return self._session().delete(*args, **kwargs)
+        self._session.headers.update({"Authorization": f"Bearer {self.authenticator.get_token()}"})
+        return self._session.delete(*args, **kwargs)
 
 
 class DeveloperAppsAPI:
@@ -1080,4 +1023,3 @@ class KVMAPI:
 class KeystoreTrustoreAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
-
