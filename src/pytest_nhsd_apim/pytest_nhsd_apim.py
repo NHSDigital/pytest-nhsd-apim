@@ -17,15 +17,6 @@ e.g.:
 """
 import pytest
 
-# Import HOOKS so pytest runs them + config fixtures
-from .config import (
-    pytest_addoption,
-    pytest_configure,
-    nhsd_apim_config,
-    nhsd_apim_api_name,
-    nhsd_apim_proxy_name,
-)
-
 # Note: At runtime, pytest does not follow the imports we define in
 # our files. Instead, it just looks amongst all the things it found
 # when it imported our extension.  This means we have to import *all*
@@ -33,11 +24,11 @@ from .config import (
 # dependencies of our public fixtures.
 from .apigee_edge import (
     _apigee_app_base_url,
-    _apigee_edge_session,
+    _apigee_app_base_url_no_dev,
     _apigee_edge_session,
     _apigee_proxy,
-    _create_test_app,
     _create_function_scoped_test_app,
+    _create_test_app,
     _identity_service_proxy,
     _identity_service_proxy_name,
     _identity_service_proxy_names,
@@ -46,15 +37,15 @@ from .apigee_edge import (
     _scope,
     _test_app_callback_url,
     _test_app_credentials,
+    _test_app_id,
+    apigee_environment,
     identity_service_base_url,
     nhsd_apim_pre_create_app,
     nhsd_apim_proxy_url,
-    test_app,
     nhsd_apim_test_app,
     nhsd_apim_unsubscribe_test_app_from_all_products,
-    apigee_environment,
+    test_app,
 )
-
 from .auth_journey import (
     _jwt_keys,
     get_access_token_via_signed_jwt_flow,
@@ -66,15 +57,17 @@ from .auth_journey import (
     jwt_public_key_pem,
     jwt_public_key_url,
 )
+
+# Import HOOKS so pytest runs them + config fixtures
+from .config import nhsd_apim_api_name, nhsd_apim_config, nhsd_apim_proxy_name, pytest_addoption, pytest_configure
+from .log import log, log_method
 from .nhsd_apim_authorization import nhsd_apim_authorization
 from .secrets import (
     _keycloak_client_credentials,
     _mock_jwks_api_key,
-    status_endpoint_auth_headers,
     _status_endpoint_api_key,
+    status_endpoint_auth_headers,
 )
-
-from .log import log, log_method
 
 
 @pytest.fixture()

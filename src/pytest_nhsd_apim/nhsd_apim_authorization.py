@@ -83,7 +83,7 @@ class Authorization(BaseModel):
 def nhsd_apim_authorization(request, nhsd_apim_api_name):
     """
     Mark your test with a `nhsd_apim_authorization marker`.
-    The call the `nhsd_apim_auth_headers` fixture to access your proxy.
+    Then call the `nhsd_apim_auth_headers` fixture to access your proxy.
 
     >>> import pytest
     >>> import requests
