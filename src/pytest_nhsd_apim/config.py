@@ -33,8 +33,12 @@ _PYTEST_CONFIG = {
         "default": "apm-testing-internal-dev@nhs.net",
     },
     "--apigee-app-id": {
-        "help": "Apigee ID of application under test.",
-        "default": "",
+        "help": "Apigee ID of application under test. Required for tests in production environments.",
+        "default": "", # Must be falsy but not None.
+    },
+    "--status-endpoint-api-key": {
+        "help": "Used to authenticate calls to proxy's _status endpoint. Required for tests in production environments.",
+        "default": "",  # Must be falsy but not None.
     },
     "--jwt-public-key-id": {
         "help": "Key ID ('kid') to select particular key.",

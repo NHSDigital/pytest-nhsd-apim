@@ -513,7 +513,7 @@ def _create_function_scoped_test_app(
         assert delete_resp.status_code == 200, err_msg
     global _TEST_APP
     _TEST_APP = None
-    
+
 
 @pytest.fixture(scope="session")
 @log_method
