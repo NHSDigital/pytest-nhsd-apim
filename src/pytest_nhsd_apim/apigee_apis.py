@@ -234,8 +234,6 @@ class ApigeeClient(RestClient):
     token to the header and makes the base_url available as a property"""
 
     def __init__(self, config: Union[ApigeeNonProdCredentials, ApigeeProdCredentials]) -> None:
-        self.token = None
-        self.config = config
         self.authenticator = ApigeeAuthenticator(config=config)
         self.base_url = config.base_url
         self._session = requests.session()
