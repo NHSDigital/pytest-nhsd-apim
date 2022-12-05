@@ -1194,8 +1194,6 @@ class AccessTokensAPI:
 
 
 class DeploymentsAPI:
-    """Manage API proxy and shared flow deployments."""
-
     def __init__(self, client: RestClient) -> None:
         self.client = client
         raise NotImplementedError(
@@ -1212,20 +1210,6 @@ class UserRolesAPI:
 
 
 class AppKeysAPI:
-    """
-    Manage consumer credentials for apps associated with individual developers.
-
-    Credential pairs consisting of consumer key and consumer secret are
-    provisioned by Apigee Edge to apps for specific API products. Apigee Edge
-    maintains the relationship between consumer keys and API products, enabling
-    API products to be added to and removed from consumer keys. A single
-    consumer key can be used to access multiple API products. Keys may be
-    manually or automatically approved for API products--how they are issued
-    depends on the API product configuration. A key must approved and approved
-    for an API product to be capable of accessing any of the URIs defined in the
-    API product.
-    """
-
     def __init__(self, client: RestClient) -> None:
         self.client = client
         raise NotImplementedError(

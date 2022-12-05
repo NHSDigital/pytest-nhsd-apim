@@ -1,3 +1,9 @@
+"""
+The order in wich this tests are ran is important since resources are going to
+be created byt the tests in Apigee. A better way writing the tests would be to
+create a fixture that manages the creation and tear down of the relevant apps in
+every tests but im a bit tired now...
+"""
 import pprint
 
 import pytest
