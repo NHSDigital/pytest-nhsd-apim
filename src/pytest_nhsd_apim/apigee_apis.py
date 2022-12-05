@@ -7,63 +7,60 @@ import requests
 from jwt import ExpiredSignatureError
 from pydantic import BaseSettings, root_validator
 
-"""
-Reads auth_server/username/password/passcode/otp_uri from environment
-variables.
-
-These control what we send to the auth server.  Required environment
-variables depends on who is authenticating and the mechanism.
-
-All environment variables in the table below are prefixed with
-APIGEE_NHSD_NONPROD_ for nhsd-nonprod and, imaginatively,
-APIGEE_NHSD_PROD_ for nhsd-prod.  so AUTH_SERVER for prod =
-APIGEE_NHSD_PROD_AUTH_SERVER.
-
-|------------------------+---------------------------------|
-| Auth/user combo        | Required environment variables  |
-|------------------------+---------------------------------|
-| non-SAML               | USERNAME, PASSWORD, OTP_KEY     |
-| SAML machine users     | AUTH_SERVER, USERNAME, PASSWORD |
-| SAML non-machine users | AUTH_SERVER, PASSCODE           |
-|------------------------+---------------------------------|
-
-No attempt is made to recover if in invalid combination of environment
-variables is provided.
-"""
 
 
 class ApigeeProdCredentials(BaseSettings):
+    """
+    Reads auth_server/username/password/passcode/otp_uri from environment
+    variables.
+
+    These control what we send to the auth server.  Required environment
+    variables depends on who is authenticating and the mechanism.
+
+    All environment variables in the table below are prefixed with
+    APIGEE_NHSD_NONPROD_ for nhsd-nonprod and, imaginatively,
+    APIGEE_NHSD_PROD_ for nhsd-prod.  so AUTH_SERVER for prod =
+    APIGEE_NHSD_PROD_AUTH_SERVER.
+
+    |------------------------+---------------------------------|
+    | Auth/user combo        | Required environment variables  |
+    |------------------------+---------------------------------|
+    | non-SAML               | USERNAME, PASSWORD, OTP_KEY     |
+    | SAML machine users     | AUTH_SERVER, USERNAME, PASSWORD |
+    | SAML non-machine users | AUTH_SERVER, PASSCODE           |
+    |------------------------+---------------------------------|
+
+    No attempt is made to recover if in invalid combination of environment
+    variables is provided.
+    """
     auth_server: str = "nhs-digital-prod.login.apigee.com"
     apigee_nhsd_prod_username: Optional[str] = None
     apigee_nhsd_prod_password: Optional[str] = None
     apigee_nhsd_prod_passcode: Optional[str] = None
     apigee_access_token: Optional[str] = None
 
-    @root_validator
+
+    @root_validator(pre=True)
     def check_credentials_config(cls, values):
+        print(values)
+        """Checks for the right set of credentials"""
         if all(
             [
                 values.get(key)
-                for key in ["apigee_nhsd_prod_username", "apigee_nhsd_prod_password", "apigee_nhsd_prod_passcode"]
+                for key in ["apigee_nhsd_prod_username", "apigee_nhsd_prod_password", "auth_server"]
             ]
         ):
             values["auth_method"] = "saml"
             return values
-        elif all([values.get(key) for key in ["apigee_nhsd_prod_username", "apigee_nhsd_prod_password"]]):
+        elif all([values.get(key) for key in ["auth_server", "apigee_nhsd_prod_passcode"]]):
             values["auth_method"] = "saml"
             return values
         elif values["access_token"]:
             values["auth_method"] = "access_token"
             return values
         else:
-            raise ValueError("Please provide valid credentials or an access_token")
+            raise ValueError("Please provide valid credentials or an access_token") #TODO better error message...
 
-    class Config:
-        env_prefix = "apigee_nhsd_prod_"
-
-    @property
-    def auth_method(self):
-        pass
 
     @property
     def org(self):
@@ -105,6 +102,7 @@ class ApigeeNonProdCredentials(BaseSettings):
 
     @root_validator
     def check_credentials_config(cls, values):
+        """Checks for the right set of credentials"""
         if all(
             [
                 values.get(key)
@@ -117,11 +115,23 @@ class ApigeeNonProdCredentials(BaseSettings):
         ):
             values["auth_method"] = "saml"
             return values
+        elif all(
+            [
+                values.get(key)
+                for key in [
+                    "auth_server",
+                    "apigee_nhsd_nonprod_password",
+                    "apigee_nhsd_nonprod_username",
+                ]
+            ]
+        ):
+            values["auth_method"] = "saml"
+            return values
         elif values["apigee_access_token"]:
             values["auth_method"] = "access_token"
             return values
         else:
-            raise ValueError("Please provide valid credentials or an access_token")
+            raise ValueError("Please provide valid credentials or apigee_access_token")
 
     @property
     def org(self):
@@ -173,7 +183,6 @@ class ApigeeAuthenticator:
     def _is_token_valid(self):
         if self._token:
             # Verify the token is still valid...
-            # TODO have some leeway on the expiry
             options = {"verify_signature": False, "verify_aud": False, "verify_exp": True}
             try:
                 jwt.decode(self._token, options=options, leeway=10)
@@ -230,7 +239,7 @@ class RestClient(ABC):
 
 
 class ApigeeClient(RestClient):
-    """A simple wraper to the requests client that basically adds a valid Apigee
+    """A simple wraper to a requests session that adds a valid Apigee
     token to the header and makes the base_url available as a property"""
 
     def __init__(self, config: Union[ApigeeNonProdCredentials, ApigeeProdCredentials]) -> None:
@@ -258,11 +267,10 @@ class ApigeeClient(RestClient):
 class DeveloperAppsAPI:
     """Manage developers that register apps."""
 
-    def __init__(self, email: str, client: RestClient) -> None:
+    def __init__(self, client: RestClient) -> None:
         self.client = client
-        self.email = email
 
-    def list_apps(self, **query_params) -> "list[str]":
+    def list_apps(self, email: str, **query_params) -> "list[str]":
         """
         Lists all apps created by a developer in an organization. Optionally,
         you can expand the response to include the profile for each app.
@@ -274,7 +282,7 @@ class DeveloperAppsAPI:
         count query parameters.
         """
         params = query_params
-        resource = f"/developers/{self.email}/apps"
+        resource = f"/developers/{email}/apps"
         url = f"{self.client.base_url}{resource}"
         resp = self.client.get(url=url, params=params)
         if resp.status_code != 200:
@@ -283,7 +291,7 @@ class DeveloperAppsAPI:
             )
         return resp.json()
 
-    def create_app(self, body: dict) -> "dict":
+    def create_app(self, email: str, body: dict) -> "dict":
         """
         Creates an app associated with a developer, associates the app with an
         API product, and auto-generates an API key for the app to use in calls
@@ -328,7 +336,7 @@ class DeveloperAppsAPI:
         property.
         """
 
-        resource = f"/developers/{self.email}/apps"
+        resource = f"/developers/{email}/apps"
         url = f"{self.client.base_url}{resource}"
         resp = self.client.post(url=url, json=body)
         if resp.status_code != 201:
@@ -337,11 +345,11 @@ class DeveloperAppsAPI:
             )
         return resp.json()
 
-    def get_app_by_name(self, app_name: str, **query_params) -> "dict":
+    def get_app_by_name(self, email: str, app_name: str, **query_params) -> "dict":
         """Gets the profile of a specific developer app."""
 
         params = query_params
-        resource = f"/developers/{self.email}/apps/{app_name}"
+        resource = f"/developers/{email}/apps/{app_name}"
         url = f"{self.client.base_url}{resource}"
         resp = self.client.get(url=url, params=params)
         if resp.status_code != 200:
@@ -350,7 +358,7 @@ class DeveloperAppsAPI:
             )
         return resp.json()
 
-    def post_app_by_name(self, app_name: str, body: dict) -> "dict":
+    def post_app_by_name(self, email: str, app_name: str, body: dict) -> "dict":
         """
         Approves, revokes, or generates an API key for a developer app.
 
@@ -385,7 +393,7 @@ class DeveloperAppsAPI:
         time.)
         """
 
-        resource = f"/developers/{self.email}/apps/{app_name}"
+        resource = f"/developers/{email}/apps/{app_name}"
         url = f"{self.client.base_url}{resource}"
         resp = self.client.post(url=url, json=body)
         if resp.status_code != 200:
@@ -394,7 +402,7 @@ class DeveloperAppsAPI:
             )
         return resp.json()
 
-    def put_app_by_name(self, app_name: str, body: dict) -> "dict":
+    def put_app_by_name(self, email: str, app_name: str, body: dict) -> "dict":
         """
         Updates an existing developer app.
 
@@ -418,7 +426,7 @@ class DeveloperAppsAPI:
         than 180 seconds.
         """
 
-        resource = f"/developers/{self.email}/apps/{app_name}"
+        resource = f"/developers/{email}/apps/{app_name}"
         url = f"{self.client.base_url}{resource}"
         resp = self.client.put(url=url, json=body)
         if resp.status_code != 200:
@@ -427,7 +435,7 @@ class DeveloperAppsAPI:
             )
         return resp.json()
 
-    def delete_app_by_name(self, app_name: str) -> None:
+    def delete_app_by_name(self, email: str, app_name: str) -> None:
         """
         Deletes a developer app.
 
@@ -438,7 +446,7 @@ class DeveloperAppsAPI:
         seconds to a few minutes to be automatically deleted.
         """
 
-        resource = f"/developers/{self.email}/apps/{app_name}"
+        resource = f"/developers/{email}/apps/{app_name}"
         url = f"{self.client.base_url}{resource}"
         resp = self.client.delete(url=url)
         if resp.status_code != 200:
@@ -447,10 +455,10 @@ class DeveloperAppsAPI:
             )
         return resp.json()
 
-    def get_app_attributes(self, app_name) -> "dict":
+    def get_app_attributes(self, email: str, app_name) -> "dict":
         """Gets developer app attributes and their values."""
 
-        resource = f"/developers/{self.email}/apps/{app_name}/attributes"
+        resource = f"/developers/{email}/apps/{app_name}/attributes"
         url = f"{self.client.base_url}{resource}"
         resp = self.client.get(url=url)
         if resp.status_code != 200:
@@ -459,7 +467,7 @@ class DeveloperAppsAPI:
             )
         return resp.json()
 
-    def post_app_attributes(self, app_name: str, body: dict) -> "dict":
+    def post_app_attributes(self, email: str, app_name: str, body: dict) -> "dict":
         """
         Updates app attributes.
 
@@ -477,7 +485,7 @@ class DeveloperAppsAPI:
         than 180 seconds.
         """
 
-        resource = f"/developers/{self.email}/apps/{app_name}/attributes"
+        resource = f"/developers/{email}/apps/{app_name}/attributes"
         url = f"{self.client.base_url}{resource}"
         resp = self.client.post(url=url, json=body)
         if resp.status_code != 200:
@@ -486,10 +494,10 @@ class DeveloperAppsAPI:
             )
         return resp.json()
 
-    def get_app_attribute_by_name(self, app_name: str, attribute_name: str) -> "dict":
+    def get_app_attribute_by_name(self, email: str, app_name: str, attribute_name: str) -> "dict":
         """Gets a developer app attribute"""
 
-        resource = f"/developers/{self.email}/apps/{app_name}/attributes/{attribute_name}"
+        resource = f"/developers/{email}/apps/{app_name}/attributes/{attribute_name}"
         url = f"{self.client.base_url}{resource}"
         resp = self.client.get(url=url)
         if resp.status_code != 200:
@@ -498,7 +506,7 @@ class DeveloperAppsAPI:
             )
         return resp.json()
 
-    def post_app_attribute_by_name(self, app_name: str, attribute_name: str, body: dict) -> "dict":
+    def post_app_attribute_by_name(self, email: str, app_name: str, attribute_name: str, body: dict) -> "dict":
         """
         Updates a developer app attribute.
 
@@ -511,7 +519,7 @@ class DeveloperAppsAPI:
         than 180 seconds.
         """
 
-        resource = f"/developers/{self.email}/apps/{app_name}/attributes/{attribute_name}"
+        resource = f"/developers/{email}/apps/{app_name}/attributes/{attribute_name}"
         url = f"{self.client.base_url}{resource}"
         resp = self.client.post(url=url, json=body)
         if resp.status_code != 200:
@@ -520,10 +528,10 @@ class DeveloperAppsAPI:
             )
         return resp.json()
 
-    def delete_app_attribute_by_name(self, app_name: str, attribute_name: str) -> "dict":
+    def delete_app_attribute_by_name(self, email: str, app_name: str, attribute_name: str) -> "dict":
         """Deletes a developer app attribute"""
 
-        resource = f"/developers/{self.email}/apps/{app_name}/attributes/{attribute_name}"
+        resource = f"/developers/{email}/apps/{app_name}/attributes/{attribute_name}"
         url = f"{self.client.base_url}{resource}"
         resp = self.client.delete(url=url)
         if resp.status_code != 200:
@@ -932,6 +940,188 @@ class DebugSessionsAPI:
             )
         return resp.json()
 
+class AccessTokensAPI:
+    """
+    Apigee Edge uses access tokens to define a user's permissions for modifying
+    and using a specific API. When you apply OAuth 2.0 to the API, Edge checks
+    the request for an access token. If an access token is present, and the API
+    is within the scope of the access token, you are allowed to access the API.
+    Prerequisites to use this API call are:
+
+    The API provider has created an organization. You are a registered
+    developer. You have created an app. You have a valid consumer key. An access
+    token has been generated.
+    """
+
+    def __init__(self, client: RestClient) -> None:
+        self.client = client
+        
+    def get_token_details(self, access_token: str):
+        """Gets details for an OAuth 2.0 access token."""
+        resource = f"/oauth2/accesstokens/{access_token}"
+        url = f"{self.client.base_url}{resource}"
+        resp = self.client.get(url=url)
+        if resp.status_code != 200:
+            raise Exception(
+                f"GET request to {resp.url} failed with status_code: {resp.status_code}, Reason: {resp.reason} and Content: {resp.text}"
+            )
+        return resp.json()
+
+    def post_token_details(self, access_token: str):
+        """
+        Enables you to perform one of the following tasks:
+
+        Approve or revoke an OAuth 2.0 access token. Set the action query
+        parameter to approve or revoke, respectively. Optionally, set the
+        cascade query parameter to true to cause refresh tokens associated with
+        the access token to be affected by the same action. Update the OAuth 2.0
+        access token attributes. Pass the attribute details in the request body.
+        Only attributes specified in the request body are updated. Any other
+        existing attributes are not affected.
+        """
+        pass
+
+    def delete_token(self, access_token: str):
+        """Deletes the specified OAuth 2.0 access token."""
+        pass
+    
+    def revoke_token(self, **query_params):
+        """
+        Revokes OAuth2 access tokens associated by specifying the end user ID, developer
+        app ID, or both.
+
+        Notes:
+
+        This API is available to Apigee Edge Enterprise plans only. This feature must be
+        enabled, as described in Enable retrieval and revocation of OAuth 2.0 access
+        tokens by end user ID, app id, or both. You must HTML-encode the end user ID and
+        app ID when you pass them in this API. This API requires the orgadmin or
+        opsadmin role. If you use this API to revoke an access token, the associated
+        refresh token will be revoked if the cascade parameter is set to true.
+        Otherwise, the refresh token status will be unchanged.
+
+        When your API request has been successfully sent, the API returns the HTTP
+        status code 202 Accepted and the response displays the number of OAuth 2.0
+        tokens that were submitted for revocation. The 202 Accepted status does not mean
+        that the revocation has been completed. For example, you may do a GET for access
+        tokens after performing a revoke and see an OAuth 2.0 access token that should
+        have been revoked. This may just mean that the revocation process is still
+        in-progress. The processing time depends on the number of access tokens being
+        revoked.
+
+        Revoke by app ID
+
+        All OAuth2 access tokens generated by Edge include the ID of the developer app
+        associated with the token, and you can revoke tokens based on that ID using this
+        API. To get a list of developer app IDs for a specific developer, see List
+        developer apps. To find tokens based on developer app ID, see Get OAuth2 access
+        token by end user or app ID.
+
+        Revoke by end user ID
+
+        In some cases, you may wish to revoke tokens associated with the ID of the user
+        to whom they were issued (the actual user of the client app). This ID has to be
+        present in the token. Adding an end user ID to an access token requires some
+        preliminary setup in the OAuthV2 policy that generates the token. For details,
+        see Enable retrieval and revocation of OAuth 2.0 access tokens by end user ID,
+        app id, or both. You can use another API to search for tokens based on end user
+        ID. See Get OAuth2 access token by end user or app ID.
+
+        For example, you may wish to provide a way for users to revoke their own access
+        tokens.
+        """
+        pass
+    
+    def search_token(self, **query_params):
+        """
+        Gets an OAuth2 access token by end user ID, developer app ID, or both.
+
+        Notes:
+
+        This API is available to Apigee Edge Enterprise plans only. For information on
+        enabling this feature, see Enable retrieval and revocation of OAuth 2.0 access
+        tokens by end user ID, app id, or both. This API requires the orgadmin or
+        opsadmin role. Search by app ID
+
+        All OAuth2 access tokens generated by Edge include the ID of the developer app
+        associated with the token, and you can search for tokens based on that ID using
+        this API. To get a list of developer app IDs for a specific developer, see List
+        developer apps.
+
+        Search by end user ID
+
+        In some cases, you may wish to search for tokens based on the ID of the user to
+        whom the token was issued (the actual user of the client app). This ID has to be
+        available as a flow variable when the token is generated by the OAuthV2 policy.
+        You can pass this ID as a query parameter or in a header with the access token
+        request, or you can retrieve it from an external identity provider, as may be
+        the case with the password grant type.
+
+        For example, you may wish to provide a way for users to discover which
+        third-party apps they've authorized and to revoke their own access tokens for
+        those apps. To search for tokens by user, you must first configure the OAuthV2
+        policy to insert a user ID into the token when it is created. This setup is
+        described in Enable retrieval and revocation of OAuth 2.0 access tokens by end
+        user ID, app id, or both.
+
+        Use start and next to navigate through multiple pages of results
+
+        When the number of access tokens returned exceeds the limit defined in the query
+        parameters, you will have multiple "pages," or lists, of access token results to
+        scroll through. Use the start query parameter and next response payload element
+        to navigate through the results.
+
+        For example, let's say your first call returns the following response payload:
+
+        {
+        "list" : [ "0XXX0wX4vX43lXXXX4f8e3504oXX", "0oXzhtXdXX8kXgeXv22zv7bXXdj4",
+        (...+8 more)], "meta" : {
+            "limit" : 10, "next" : "3gwbXXX2thXXzX7XXdyOblXtXyXX", "query" : {
+            "endUser" : "{enduser}"
+            }, "start" : "", "totalResults" : 100
+        }
+        } 
+        
+        Note that the request limited the results returned per page to 10 and that the
+        total number of results is 100. You need a way to navigate through nine more
+        pages of results to see all 100 results.
+
+        To do this, make another call with the next value in the output above as the
+        start query parameter. The request URL may look something like this:
+
+        https://api.enterprise.apigee.com/v1/organizations/{org-name}/oauth2/search?enduser={enduser}&start=3gwbXXX2thXXzX7XXdyOblXtXyXX&limit=10
+        See the response payload below:
+
+        "list" : [ "3gwbXXX2thXXzX7XXdyOblXtXyXX", "482XXv8XfXiouXvcXq6geXXkXXXX",
+        (...+8 more)], "meta" : {
+            "limit" : 10, "next" : "Xa8mXidgXXtXXXcXnX8XXeXgXX6X", "query" : {
+            "endUser" : "{enduser}"
+            }, "start" : "3gwbXXX2thXXzX7XXdyXblXtXyXX", "totalResults" : 100
+            
+        }
+        } 
+        
+        Note that this next page of 10 results shown above starts with the access
+        token requested by the start parameter. To see the next 10 results, make the
+        same call, just using the next value in the output above as the start value as
+        shown in bold below:
+
+        https://api.enterprise.apigee.com/v1/organizations/{org-name}/oauth2/search?enduser={enduser}&start=Xa8mXidgXXtXXXcXnX8XXeXgXX6X&limit=10
+
+        You can page through each set of results by repeating this pattern of calls.
+
+        Response error details
+
+        The following describes common errors and what they mean.
+
+        keymanagement.service.app_id_not_found: An app ID provided in the query
+        parameters was not found. parameters_missing: An end user ID provided in the
+        query parameters was not found. InvalidValueForLimitParam: The limit value
+        provided in the query parameters exceeds the value of the oauth_max_search_limit
+        property defined in your keymanagement.properties files for your management
+        server and message processor. UnsupportedOperationRevoke: If this feature isn't
+        enabled, you'll get an UnsupportedOperationRevoke error.
+        """
 
 class DeploymentsAPI:
     """Manage API proxy and shared flow deployments."""
@@ -976,21 +1166,6 @@ class AppKeysAPI:
         self.client = client
 
 
-class AccessTokensAPI:
-    """
-    Apigee Edge uses access tokens to define a user's permissions for modifying
-    and using a specific API. When you apply OAuth 2.0 to the API, Edge checks
-    the request for an access token. If an access token is present, and the API
-    is within the scope of the access token, you are allowed to access the API.
-    Prerequisites to use this API call are:
-
-    The API provider has created an organization. You are a registered
-    developer. You have created an app. You have a valid consumer key. An access
-    token has been generated.
-    """
-
-    def __init__(self, client: RestClient) -> None:
-        self.client = client
 
 
 class UsersAPI:
@@ -1021,3 +1196,10 @@ class KVMAPI:
 class KeystoreTrustoreAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
+
+# Testing stuff...
+
+config = ApigeeNonProdCredentials()
+client = ApigeeClient(config=config)
+developer_apps = DeveloperAppsAPI(client=client)
+print(developer_apps.list_apps(email="lucas.fantini@nhs.net",))

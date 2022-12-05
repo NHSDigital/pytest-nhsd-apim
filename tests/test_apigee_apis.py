@@ -13,7 +13,7 @@ def client():
 
 class TestDeveloperAppsAPI:
     def test_create_app(self, client):
-        developer_apps = DeveloperAppsAPI(email="lucas.fantini@nhs.net", client=client)
+        developer_apps = DeveloperAppsAPI(client=client)
         body = {
             "apiProducts": ["identity-service-internal-dev"],
             "attributes": [
@@ -27,10 +27,10 @@ class TestDeveloperAppsAPI:
             "scopes": [],
             "status": "approved",
         }
-        pprint.pprint(developer_apps.create_app(body=body))
+        pprint.pprint(developer_apps.create_app(email="lucas.fantini@nhs.net",body=body))
 
     def test_post_app_by_name(self, client):
-        developer_apps = DeveloperAppsAPI(email="lucas.fantini@nhs.net", client=client)
+        developer_apps = DeveloperAppsAPI(client=client)
         body = {
             "apiProducts": ["identity-service-internal-dev"],
             "attributes": [
@@ -44,10 +44,10 @@ class TestDeveloperAppsAPI:
             "scopes": [],
             "status": "approved",
         }
-        pprint.pprint(developer_apps.post_app_by_name(body=body, app_name="myapp"))
+        pprint.pprint(developer_apps.post_app_by_name(email="lucas.fantini@nhs.net", body=body, app_name="myapp"))
 
     def test_put_app_by_name(self, client):
-        developer_apps = DeveloperAppsAPI(email="lucas.fantini@nhs.net", client=client)
+        developer_apps = DeveloperAppsAPI(client=client)
         body = {
             "apiProducts": ["identity-service-internal-dev", "mock-jwks-internal-dev"],
             "attributes": [
@@ -61,19 +61,19 @@ class TestDeveloperAppsAPI:
             "scopes": [],
             "status": "approved",
         }
-        pprint.pprint(developer_apps.put_app_by_name(body=body, app_name="myapp"))
+        pprint.pprint(developer_apps.put_app_by_name(email="lucas.fantini@nhs.net", body=body, app_name="myapp"))
 
     def test_list_apps(self, client):
-        developer_apps = DeveloperAppsAPI(email="lucas.fantini@nhs.net", client=client)
-        pprint.pprint(developer_apps.list_apps())
+        developer_apps = DeveloperAppsAPI(client=client)
+        pprint.pprint(developer_apps.list_apps(email="lucas.fantini@nhs.net", ))
 
     def test_get_app_by_name(self, client):
-        developer_apps = DeveloperAppsAPI(email="lucas.fantini@nhs.net", client=client)
-        pprint.pprint(developer_apps.get_app_by_name(app_name="myapp"))
+        developer_apps = DeveloperAppsAPI(client=client)
+        pprint.pprint(developer_apps.get_app_by_name(email="lucas.fantini@nhs.net", app_name="myapp"))
 
     def test_get_app_attributes(self, client):
-        developer_apps = DeveloperAppsAPI(email="lucas.fantini@nhs.net", client=client)
-        pprint.pprint(developer_apps.get_app_attributes(app_name="myapp"))
+        developer_apps = DeveloperAppsAPI(client=client)
+        pprint.pprint(developer_apps.get_app_attributes(email="lucas.fantini@nhs.net", app_name="myapp"))
 
     def test_post_app_attributes(self, client):
         body = {
@@ -82,27 +82,27 @@ class TestDeveloperAppsAPI:
                 {"name": "DisplayName", "value": "My App"},
             ]
         }
-        developer_apps = DeveloperAppsAPI(email="lucas.fantini@nhs.net", client=client)
-        pprint.pprint(developer_apps.post_app_attributes(app_name="myapp", body=body))
+        developer_apps = DeveloperAppsAPI(client=client)
+        pprint.pprint(developer_apps.post_app_attributes(email="lucas.fantini@nhs.net", app_name="myapp", body=body))
 
     def test_get_app_attributes_by_name(self, client):
-        developer_apps = DeveloperAppsAPI(email="lucas.fantini@nhs.net", client=client)
-        pprint.pprint(developer_apps.get_app_attribute_by_name(app_name="myapp", attribute_name="ADMIN_EMAIL"))
+        developer_apps = DeveloperAppsAPI(client=client)
+        pprint.pprint(developer_apps.get_app_attribute_by_name(email="lucas.fantini@nhs.net", app_name="myapp", attribute_name="ADMIN_EMAIL"))
 
     def test_post_app_attribute_by_name(self, client):
         body = {"name": "DisplayName", "value": "MyApp"}
-        developer_apps = DeveloperAppsAPI(email="lucas.fantini@nhs.net", client=client)
+        developer_apps = DeveloperAppsAPI(client=client)
         pprint.pprint(
-            developer_apps.post_app_attribute_by_name(app_name="myapp", attribute_name="DisplayName", body=body)
+            developer_apps.post_app_attribute_by_name(email="lucas.fantini@nhs.net", app_name="myapp", attribute_name="DisplayName", body=body)
         )
 
     def test_delete_app_attribute_by_name(self, client):
-        developer_apps = DeveloperAppsAPI(email="lucas.fantini@nhs.net", client=client)
-        pprint.pprint(developer_apps.delete_app_attribute_by_name(app_name="myapp", attribute_name="DisplayName"))
+        developer_apps = DeveloperAppsAPI(client=client)
+        pprint.pprint(developer_apps.delete_app_attribute_by_name(email="lucas.fantini@nhs.net", app_name="myapp", attribute_name="DisplayName"))
 
     def test_delete_app_by_name(self, client):
-        developer_apps = DeveloperAppsAPI(email="lucas.fantini@nhs.net", client=client)
-        pprint.pprint(developer_apps.delete_app_by_name(app_name="myapp"))
+        developer_apps = DeveloperAppsAPI(client=client)
+        pprint.pprint(developer_apps.delete_app_by_name(email="lucas.fantini@nhs.net", app_name="myapp"))
 
 
 class TestApiProductsAPI:
