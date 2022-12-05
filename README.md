@@ -46,7 +46,17 @@ We present a variety of authenticators including AuthorizationCodeAuthenticator,
 ```
 For a more detailed implementation on the rest of the authenticators please refer to the examples [here](/tests/test_examples.py#L308).
 ### Apigee APIs
-We also present a variety off Apigee APIs with the benefit of a fully authenticated Apigee client ready to use.
+We also present a variety off Apigee APIs with the benefit of a fully authenticated Apigee client ready to use. Just remember to export the following variables
+```bash
+# If you want the client to authenticate you...
+export APIGEE_NHSD_NONPROD_USERNAME={my_username}
+export APIGEE_NHSD_NONPROD_PASSWORD={my_password}
+export APIGEE_NHSD_NONPROD_OTP_KEY={my_otp}
+# Or alternatively, if you already have a token you can pass it and the client will use it.
+export APIGEE_ACCESS_TOKEN={access_token}
+
+#NOTE: in case both sets of credentials are defined, the username and password take presedence, this is so the Apigee client can keep itself authenticated all the time.
+```
 ```python
 from pytest_nhsd_apim.apigee_apis import ApigeeNonProdCredentials, DeveloperAppsAPI
 
