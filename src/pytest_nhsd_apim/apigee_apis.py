@@ -8,7 +8,6 @@ from jwt import ExpiredSignatureError
 from pydantic import BaseSettings, root_validator
 
 
-
 class ApigeeProdCredentials(BaseSettings):
     """
     Reads auth_server/username/password/passcode/otp_uri from environment
@@ -33,23 +32,18 @@ class ApigeeProdCredentials(BaseSettings):
     No attempt is made to recover if in invalid combination of environment
     variables is provided.
     """
+
     auth_server: str = "nhs-digital-prod.login.apigee.com"
     apigee_nhsd_prod_username: Optional[str] = None
     apigee_nhsd_prod_password: Optional[str] = None
     apigee_nhsd_prod_passcode: Optional[str] = None
     apigee_access_token: Optional[str] = None
 
-
     @root_validator(pre=True)
     def check_credentials_config(cls, values):
         print(values)
         """Checks for the right set of credentials"""
-        if all(
-            [
-                values.get(key)
-                for key in ["apigee_nhsd_prod_username", "apigee_nhsd_prod_password", "auth_server"]
-            ]
-        ):
+        if all([values.get(key) for key in ["apigee_nhsd_prod_username", "apigee_nhsd_prod_password", "auth_server"]]):
             values["auth_method"] = "saml"
             return values
         elif all([values.get(key) for key in ["auth_server", "apigee_nhsd_prod_passcode"]]):
@@ -59,8 +53,7 @@ class ApigeeProdCredentials(BaseSettings):
             values["auth_method"] = "access_token"
             return values
         else:
-            raise ValueError("Please provide valid credentials or an access_token") #TODO better error message...
-
+            raise ValueError("Please provide valid credentials or an access_token")  # TODO better error message...
 
     @property
     def org(self):
@@ -116,14 +109,7 @@ class ApigeeNonProdCredentials(BaseSettings):
             values["auth_method"] = "saml"
             return values
         elif all(
-            [
-                values.get(key)
-                for key in [
-                    "auth_server",
-                    "apigee_nhsd_nonprod_password",
-                    "apigee_nhsd_nonprod_username",
-                ]
-            ]
+            [values.get(key) for key in ["auth_server", "apigee_nhsd_nonprod_password", "apigee_nhsd_nonprod_username"]]
         ):
             values["auth_method"] = "saml"
             return values
@@ -940,6 +926,7 @@ class DebugSessionsAPI:
             )
         return resp.json()
 
+
 class AccessTokensAPI:
     """
     Apigee Edge uses access tokens to define a user's permissions for modifying
@@ -955,7 +942,7 @@ class AccessTokensAPI:
 
     def __init__(self, client: RestClient) -> None:
         self.client = client
-        
+
     def get_token_details(self, access_token: str):
         """Gets details for an OAuth 2.0 access token."""
         resource = f"/oauth2/accesstokens/{access_token}"
@@ -967,7 +954,7 @@ class AccessTokensAPI:
             )
         return resp.json()
 
-    def post_token_details(self, access_token: str):
+    def post_token_details(self, access_token: str, body: dict, **query_params):
         """
         Enables you to perform one of the following tasks:
 
@@ -979,12 +966,26 @@ class AccessTokensAPI:
         Only attributes specified in the request body are updated. Any other
         existing attributes are not affected.
         """
-        pass
+        resource = f"/oauth2/accesstokens/{access_token}"
+        url = f"{self.client.base_url}{resource}"
+        resp = self.client.post(url=url, json=body, params=query_params)
+        if resp.status_code != 200:
+            raise Exception(
+                f"POST request to {resp.url} failed with status_code: {resp.status_code}, Reason: {resp.reason} and Content: {resp.text}"
+            )
+        return resp.json()
 
     def delete_token(self, access_token: str):
         """Deletes the specified OAuth 2.0 access token."""
-        pass
-    
+        resource = f"/oauth2/accesstokens/{access_token}"
+        url = f"{self.client.base_url}{resource}"
+        resp = self.client.delete(url=url)
+        if resp.status_code != 200:
+            raise Exception(
+                f"DELETE request to {resp.url} failed with status_code: {resp.status_code}, Reason: {resp.reason} and Content: {resp.text}"
+            )
+        return resp.json()
+
     def revoke_token(self, **query_params):
         """
         Revokes OAuth2 access tokens associated by specifying the end user ID, developer
@@ -1030,8 +1031,15 @@ class AccessTokensAPI:
         For example, you may wish to provide a way for users to revoke their own access
         tokens.
         """
-        pass
-    
+        resource = f"/oauth2/revoke"
+        url = f"{self.client.base_url}{resource}"
+        resp = self.client.post(url=url, params=query_params)
+        if resp.status_code != 200:
+            raise Exception(
+                f"POST request to {resp.url} failed with status_code: {resp.status_code}, Reason: {resp.reason} and Content: {resp.text}"
+            )
+        return resp.json()
+
     def search_token(self, **query_params):
         """
         Gets an OAuth2 access token by end user ID, developer app ID, or both.
@@ -1080,8 +1088,8 @@ class AccessTokensAPI:
             "endUser" : "{enduser}"
             }, "start" : "", "totalResults" : 100
         }
-        } 
-        
+        }
+
         Note that the request limited the results returned per page to 10 and that the
         total number of results is 100. You need a way to navigate through nine more
         pages of results to see all 100 results.
@@ -1097,10 +1105,10 @@ class AccessTokensAPI:
             "limit" : 10, "next" : "Xa8mXidgXXtXXXcXnX8XXeXgXX6X", "query" : {
             "endUser" : "{enduser}"
             }, "start" : "3gwbXXX2thXXzX7XXdyXblXtXyXX", "totalResults" : 100
-            
+
         }
-        } 
-        
+        }
+
         Note that this next page of 10 results shown above starts with the access
         token requested by the start parameter. To see the next 10 results, make the
         same call, just using the next value in the output above as the start value as
@@ -1122,6 +1130,15 @@ class AccessTokensAPI:
         server and message processor. UnsupportedOperationRevoke: If this feature isn't
         enabled, you'll get an UnsupportedOperationRevoke error.
         """
+        resource = f"/oauth2/search"
+        url = f"{self.client.base_url}{resource}"
+        resp = self.client.get(url=url, params=query_params)
+        if resp.status_code != 200:
+            raise Exception(
+                f"GET request to {resp.url} failed with status_code: {resp.status_code}, Reason: {resp.reason} and Content: {resp.text}"
+            )
+        return resp.json()
+
 
 class DeploymentsAPI:
     """Manage API proxy and shared flow deployments."""
@@ -1166,8 +1183,6 @@ class AppKeysAPI:
         self.client = client
 
 
-
-
 class UsersAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
@@ -1197,9 +1212,10 @@ class KeystoreTrustoreAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
 
+
 # Testing stuff...
 
-config = ApigeeNonProdCredentials()
-client = ApigeeClient(config=config)
-developer_apps = DeveloperAppsAPI(client=client)
-print(developer_apps.list_apps(email="lucas.fantini@nhs.net",))
+# config = ApigeeNonProdCredentials()
+# client = ApigeeClient(config=config)
+# developer_apps = DeveloperAppsAPI(client=client)
+# print(developer_apps.list_apps(email="lucas.fantini@nhs.net"))
