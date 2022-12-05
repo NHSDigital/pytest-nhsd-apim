@@ -23,9 +23,7 @@ _PYTEST_CONFIG = {
         "help": "Proxy under test, should exactly match the name on Apigee.",
         "default": "",  # Must be falsy but not None.
     },
-    "--apigee-access-token": {
-        "help": "Access token to log into apigee edge API, output of get_token"
-    },
+    "--apigee-access-token": {"help": "Access token to log into apigee edge API, output of get_token"},
     "--apigee-organization": {
         "help": "nhsd-nonprod/nhsd-prod.",
         "default": "nhsd-nonprod",
@@ -33,6 +31,14 @@ _PYTEST_CONFIG = {
     "--apigee-developer": {
         "help": "Developer that will own the test app.",
         "default": "apm-testing-internal-dev@nhs.net",
+    },
+    "--apigee-app-id": {
+        "help": "Apigee ID of application under test. Required for tests in production environments.",
+        "default": "", # Must be falsy but not None.
+    },
+    "--status-endpoint-api-key": {
+        "help": "Used to authenticate calls to proxy's _status endpoint. Required for tests in production environments.",
+        "default": "",  # Must be falsy but not None.
     },
     "--jwt-public-key-id": {
         "help": "Key ID ('kid') to select particular key.",

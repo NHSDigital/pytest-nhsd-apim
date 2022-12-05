@@ -10,22 +10,24 @@ import requests
 from .apigee_edge import (
     _apigee_app_base_url,
     _apigee_edge_session,
+    _test_app_id,
+    apigee_environment,
     get_app_credentials_for_product,
     test_app,
-    apigee_environment,
 )
-
 from .log import log, log_method
-
 
 _SESSION = requests.session()
 
 
 @pytest.fixture()
 @log_method
-def _mock_jwks_api_key(_apigee_app_base_url, _apigee_edge_session, test_app, apigee_environment):
+def _mock_jwks_api_key(_apigee_app_base_url, _apigee_edge_session, test_app, apigee_environment, _test_app_id):
+    # Apps in prod Apigee shouldn't rely on mock-jwks for their api key
+    if apigee_environment in ["int", "prod"]: return ""
+
     creds = get_app_credentials_for_product(
-        _apigee_app_base_url, _apigee_edge_session, test_app(), f"mock-jwks-{apigee_environment}"
+        _apigee_app_base_url, _apigee_edge_session, test_app(), f"mock-jwks-{apigee_environment}", _test_app_id
     )
     return creds["consumerKey"]
 
@@ -41,9 +43,13 @@ _STATUS_ENDPOINT_API_KEY = None
 
 @pytest.fixture()
 @log_method
-def _status_endpoint_api_key(_mock_jwks_api_key, apigee_environment):
+def _status_endpoint_api_key(_mock_jwks_api_key, apigee_environment, nhsd_apim_config):
     global _STATUS_ENDPOINT_API_KEY
-    if _STATUS_ENDPOINT_API_KEY is None:
+
+    # First try retrieving key from config
+    _STATUS_ENDPOINT_API_KEY = nhsd_apim_config.get("STATUS_ENDPOINT_API_KEY", "")
+
+    if _STATUS_ENDPOINT_API_KEY == "":
         resp = _SESSION.get(
             f"https://{apigee_environment}.api.service.nhs.uk/mock-jwks/status-endpoint-api-key",
             headers={"apikey": _mock_jwks_api_key},

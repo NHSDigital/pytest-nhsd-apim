@@ -5,10 +5,10 @@ This includes app setup/teardown, getting proxy info (proxy-under-test
 + identity-service of choice), getting products, registering them with
 the test app.
 """
-import warnings
 import functools
+import warnings
 from datetime import datetime
-from typing import Callable, Literal, Dict, Any
+from typing import Any, Callable, Dict, Literal
 from uuid import uuid4
 
 import pytest
@@ -39,6 +39,12 @@ def _apigee_app_base_url(nhsd_apim_config):
     url = APIGEE_BASE_URL + f"organizations/{org}/developers/{dev}/apps"
     return url
 
+@pytest.fixture(scope="session")
+@log_method
+def _apigee_app_base_url_no_dev(nhsd_apim_config):
+    org = nhsd_apim_config["APIGEE_ORGANIZATION"]
+    url = APIGEE_BASE_URL + f"organizations/{org}/apps"
+    return url
 
 @functools.lru_cache(maxsize=None)
 @log_method
@@ -46,13 +52,9 @@ def _get_proxy_json(session, nhsd_apim_proxy_url):
     """
     Query the apigee edge API to get data about the desired proxy, in particular its current deployment.
     """
-    deployment_err_msg = (
-        "\n\tInvalid Access Token: Ensure APIGEE_ACCESS_TOKEN is valid."
-    )
+    deployment_err_msg = "\n\tInvalid Access Token: Ensure APIGEE_ACCESS_TOKEN is valid."
     deployment_resp = session.get(nhsd_apim_proxy_url + "/deployments")
-    assert deployment_resp.status_code == 200, deployment_err_msg.format(
-        deployment_resp.content
-    )
+    assert deployment_resp.status_code == 200, deployment_err_msg.format(deployment_resp.content)
     deployment_json = deployment_resp.json()
 
     # Should be the case
@@ -73,9 +75,7 @@ def _get_proxy_json(session, nhsd_apim_proxy_url):
 
 
 @pytest.fixture()
-def _identity_service_proxy(
-    _apigee_edge_session, nhsd_apim_config, _identity_service_proxy_name
-):
+def _identity_service_proxy(_apigee_edge_session, nhsd_apim_config, _identity_service_proxy_name):
     """
     Get the current revision deployed and pull proxy metadata.
     """
@@ -93,9 +93,7 @@ def _apigee_proxy(_apigee_edge_session, nhsd_apim_config, nhsd_apim_proxy_name):
     Get the current revision deployed and pull proxy metadata.
     """
     org = nhsd_apim_config["APIGEE_ORGANIZATION"]
-    apigee_edge_api_proxy_url = (
-        APIGEE_BASE_URL + f"organizations/{org}/apis/{nhsd_apim_proxy_name}"
-    )
+    apigee_edge_api_proxy_url = APIGEE_BASE_URL + f"organizations/{org}/apis/{nhsd_apim_proxy_name}"
     return _get_proxy_json(_apigee_edge_session, apigee_edge_api_proxy_url)
 
 
@@ -134,21 +132,13 @@ def _proxy_products(_apigee_edge_session, nhsd_apim_proxy_name, nhsd_apim_config
     empty in other fixtures.
     """
     global _APIGEE_PRODUCTS
-    proxy_products = [
-        product
-        for product in _APIGEE_PRODUCTS
-        if nhsd_apim_proxy_name in product["proxies"]
-    ]
+    proxy_products = [product for product in _APIGEE_PRODUCTS if nhsd_apim_proxy_name in product["proxies"]]
 
     if len(proxy_products) == 0:
         # Refresh the list and try again...
         _APIGEE_PRODUCTS = get_all_products(_apigee_edge_session, nhsd_apim_config)
 
-    proxy_products = [
-        product
-        for product in _APIGEE_PRODUCTS
-        if nhsd_apim_proxy_name in product["proxies"]
-    ]
+    proxy_products = [product for product in _APIGEE_PRODUCTS if nhsd_apim_proxy_name in product["proxies"]]
     if len(proxy_products) == 0:
         raise ValueError(f"No products grant access to proxy {nhsd_apim_proxy_name}")
 
@@ -167,6 +157,7 @@ def _get_proxy_url(proxy_json):
     proxy_url = prefix + "api.service.nhs.uk/" + proxy_json["basepaths"][0]
     return proxy_url
 
+
 @pytest.fixture()
 @log_method
 def nhsd_apim_proxy_url(_apigee_proxy):
@@ -175,6 +166,7 @@ def nhsd_apim_proxy_url(_apigee_proxy):
     """
     return _get_proxy_url(_apigee_proxy)
 
+
 @pytest.fixture()
 @log_method
 def apigee_environment(_apigee_proxy):
@@ -182,6 +174,7 @@ def apigee_environment(_apigee_proxy):
     Apigee environment of the proxy under test.
     """
     return _apigee_proxy["environment"]
+
 
 @pytest.fixture()
 @log_method
@@ -212,18 +205,12 @@ def _identity_service_proxy_names(_proxy_product_with_scope):
     """
     Get a list of `identity-service` proxies for which we can match a given/required APIGEE `scope`.
     """
-    return [
-        proxy
-        for proxy in _proxy_product_with_scope["proxies"]
-        if proxy.startswith("identity-service")
-    ]
+    return [proxy for proxy in _proxy_product_with_scope["proxies"] if proxy.startswith("identity-service")]
 
 
 @pytest.fixture()
 @log_method
-def _identity_service_proxy_name(
-    _identity_service_proxy_names, nhsd_apim_authorization
-):
+def _identity_service_proxy_name(_identity_service_proxy_names, nhsd_apim_authorization):
     """
     Make a reasonable choice about which identity-service proxy to use.
 
@@ -238,14 +225,10 @@ def _identity_service_proxy_name(
     if not nhsd_apim_authorization:
         return None
 
-    keycloak = next(
-        filter(lambda name: "-mock" in name, _identity_service_proxy_names), None
-    )
+    keycloak = next(filter(lambda name: "-mock" in name, _identity_service_proxy_names), None)
     if keycloak:
         return keycloak
-    warnings.warn(
-        f"Unable to find mock auth generation 2 in {_identity_service_proxy_names}."
-    )
+    warnings.warn(f"Unable to find mock auth generation 2 in {_identity_service_proxy_names}.")
     return _identity_service_proxy_names[0]
 
 
@@ -288,9 +271,7 @@ _TEST_APP = None
 
 @pytest.fixture(scope="session")
 @log_method
-def nhsd_apim_test_app(
-    _create_test_app, _apigee_edge_session, _apigee_app_base_url
-) -> Callable:
+def nhsd_apim_test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url, _apigee_app_base_url_no_dev, _test_app_id) -> Callable:
     """
     A Callable that gets you the current state of the test app.
     """
@@ -319,9 +300,10 @@ def nhsd_apim_test_app(
         global _TEST_APP
         if _TEST_APP and not force_refresh:
             return _TEST_APP
-        resp = _apigee_edge_session.get(
-            _apigee_app_base_url + "/" + _create_test_app["name"]
-        )
+        if _test_app_id:
+            resp = _apigee_edge_session.get(_apigee_app_base_url_no_dev + "/" + _test_app_id)
+        else: 
+            resp = _apigee_edge_session.get(_apigee_app_base_url + "/" + _create_test_app["name"])
         _TEST_APP = resp.json()
         return _TEST_APP
 
@@ -331,7 +313,7 @@ def nhsd_apim_test_app(
 @log_method
 @pytest.fixture(scope="session")
 def nhsd_apim_unsubscribe_test_app_from_all_products(
-    nhsd_apim_test_app, _apigee_edge_session, _apigee_app_base_url
+    nhsd_apim_test_app, _apigee_edge_session, _apigee_app_base_url, _test_app_id
 ):
     """
     Returns a callable that when run, will unsubscribe the test app
@@ -342,13 +324,16 @@ def nhsd_apim_unsubscribe_test_app_from_all_products(
     """
 
     def unsubscribe():
+        # If app already exists we don't want to modify
+        # its product subscriptions
+        if _test_app_id:
+            return
+
         app = nhsd_apim_test_app(force_refresh=True)
         app_name = app["name"]
         for cred in app["credentials"]:
             key = cred["consumerKey"]
-            resp = _apigee_edge_session.delete(
-                _apigee_app_base_url + f"/{app_name}/keys/{key}"
-            )
+            resp = _apigee_edge_session.delete(_apigee_app_base_url + f"/{app_name}/keys/{key}")
         app = nhsd_apim_test_app(force_refresh=True)
 
     return unsubscribe
@@ -366,20 +351,21 @@ def get_matching_creds(app, product_name):
     now = int(1000 * datetime.utcnow().timestamp())
     for creds in filter(approved, app["credentials"]):
         if creds["expiresAt"] == -1 or now < creds["expiresAt"]:
-            approved_product_names = [
-                p["apiproduct"] for p in filter(approved, creds["apiProducts"])
-            ]
+            approved_product_names = [p["apiproduct"] for p in filter(approved, creds["apiProducts"])]
             if product_name in approved_product_names:
                 return creds
 
 
 @log_method
-def get_app_credentials_for_product(
-    apigee_app_base_url, apigee_edge_session, app, product_name
-):
+def get_app_credentials_for_product(apigee_app_base_url, apigee_edge_session, app, product_name, _test_app_id):
     matching_creds = get_matching_creds(app, product_name)
     if matching_creds is not None:
         return matching_creds
+
+    # If app already exists we do not want to modify its
+    # subscriptions.
+    if not _test_app_id == "":
+        raise ValueError(f"App with id {_test_app_id} does not have expected credentials")
 
     # Use the apigee edge api to add another set of credentials
     # https://apidocs.apigee.com/docs/developer-apps/1/routes/organizations/%7Borg_name%7D/developers/%7Bdeveloper_email%7D/apps/%7Bapp_name%7D/put
@@ -387,9 +373,7 @@ def get_app_credentials_for_product(
     app_url = apigee_app_base_url + "/" + app["name"]
     resp = apigee_edge_session.put(app_url, json=app)
     if resp.status_code != 200:
-        raise ValueError(
-            f"Unexpected response from {app_url}: {resp.status_code}, {resp.text}"
-        )
+        raise ValueError(f"Unexpected response from {app_url}: {resp.status_code}, {resp.text}")
     global _TEST_APP
     _TEST_APP = resp.json()
 
@@ -405,6 +389,7 @@ def _test_app_credentials(
     nhsd_apim_test_app,
     _scope,
     _proxy_product_with_scope,
+    _test_app_id,
 ):
     """
     Get matching credentials for `test_app`, which have access
@@ -416,6 +401,7 @@ def _test_app_credentials(
         _apigee_edge_session,
         app,
         _proxy_product_with_scope["name"],
+        _test_app_id,
     )
 
 
@@ -444,9 +430,11 @@ def nhsd_apim_pre_create_app():
 @log_method
 def _create_test_app(
     _apigee_app_base_url,
+    _apigee_app_base_url_no_dev,
     _apigee_edge_session,
     jwt_public_key_url,
     nhsd_apim_pre_create_app,
+    _test_app_id,
 ):
     """
     Create an ephemeral app that lasts the duration of the pytest
@@ -459,19 +447,26 @@ def _create_test_app(
     for details.
     """
 
-    app = {
-        "name": f"apim-auto-{uuid4()}",
-        "callbackUrl": "https://example.org/callback",
-        "attributes": [{"name": "jwks-resource-url", "value": jwt_public_key_url}],
-    }
-    create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app)
-    err_msg = f"Could not CREATE TestApp: `{app['name']}`.\tReason: {create_resp.text}"
-    assert create_resp.status_code == 201, err_msg
+    # Retrieving pre-existing app
+    if not _test_app_id == "":
+        get_resp = _apigee_edge_session.get(_apigee_app_base_url_no_dev + "/" + _test_app_id)
+        err_msg = f"Could not GET TestApp: {_test_app_id}.\tReason: {get_resp.text}"
+        assert get_resp.status_code == 200, err_msg
+        yield get_resp.json()
+    else:
+        app = {
+            "name": f"apim-auto-{uuid4()}",
+            "callbackUrl": "https://example.org/callback",
+            "attributes": [{"name": "jwks-resource-url", "value": jwt_public_key_url}],
+        }
+        create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app)
+        err_msg = f"Could not CREATE TestApp: `{app['name']}`.\tReason: {create_resp.text}"
+        assert create_resp.status_code == 201, err_msg
 
-    yield create_resp.json()
-    delete_resp = _apigee_edge_session.delete(_apigee_app_base_url + "/" + app["name"])
-    err_msg = f"Could not DELETE TestApp: `{app['name']}`.\tReason: {delete_resp.text}"
-    assert delete_resp.status_code == 200, err_msg
+        yield create_resp.json()
+        delete_resp = _apigee_edge_session.delete(_apigee_app_base_url + "/" + app["name"])
+        err_msg = f"Could not DELETE TestApp: `{app['name']}`.\tReason: {delete_resp.text}"
+        assert delete_resp.status_code == 200, err_msg
     global _TEST_APP
     _TEST_APP = None
 
@@ -483,6 +478,7 @@ def _create_function_scoped_test_app(
     _apigee_edge_session,
     jwt_public_key_url,
     nhsd_apim_pre_create_app,
+    _test_app_id,
 ):
     """
     Create an ephemeral app that lasts the duration of the pytest
@@ -495,19 +491,26 @@ def _create_function_scoped_test_app(
     for details.
     """
 
-    app = {
-        "name": f"apim-auto-{uuid4()}",
-        "callbackUrl": "https://example.org/callback",
-        "attributes": [{"name": "jwks-resource-url", "value": jwt_public_key_url}],
-    }
-    create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app)
-    err_msg = f"Could not CREATE TestApp: `{app['name']}`.\tReason: {create_resp.text}"
-    assert create_resp.status_code == 201, err_msg
+    # Retrieving pre-existing app
+    if not _test_app_id == "":
+        get_resp = _apigee_edge_session.get(_apigee_app_base_url_no_dev + "/" + _test_app_id)
+        err_msg = f"Could not GET TestApp: {_test_app_id}.\tReason: {get_resp.text}"
+        assert get_resp.status_code == 200, err_msg
+        yield get_resp.json()
+    else:
+        app = {
+            "name": f"apim-auto-{uuid4()}",
+            "callbackUrl": "https://example.org/callback",
+            "attributes": [{"name": "jwks-resource-url", "value": jwt_public_key_url}],
+        }
+        create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app)
+        err_msg = f"Could not CREATE TestApp: `{app['name']}`.\tReason: {create_resp.text}"
+        assert create_resp.status_code == 201, err_msg
 
-    yield create_resp.json()
-    delete_resp = _apigee_edge_session.delete(_apigee_app_base_url + "/" + app["name"])
-    err_msg = f"Could not DELETE TestApp: `{app['name']}`.\tReason: {delete_resp.text}"
-    assert delete_resp.status_code == 200, err_msg
+        yield create_resp.json()
+        delete_resp = _apigee_edge_session.delete(_apigee_app_base_url + "/" + app["name"])
+        err_msg = f"Could not DELETE TestApp: `{app['name']}`.\tReason: {delete_resp.text}"
+        assert delete_resp.status_code == 200, err_msg
     global _TEST_APP
     _TEST_APP = None
 
@@ -516,3 +519,9 @@ def _create_function_scoped_test_app(
 @log_method
 def _test_app_callback_url(_create_test_app):
     return _create_test_app["callbackUrl"]
+
+
+@pytest.fixture(scope="session")
+@log_method
+def _test_app_id(nhsd_apim_config):
+    return nhsd_apim_config["APIGEE_APP_ID"]
