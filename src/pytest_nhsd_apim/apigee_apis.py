@@ -1181,41 +1181,43 @@ class AppKeysAPI:
 
     def __init__(self, client: RestClient) -> None:
         self.client = client
+        raise NotImplementedError(f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142")
 
 
 class UsersAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
+        raise NotImplementedError(f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142")
+
 
 
 class AuthorizationCodesAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
+        raise NotImplementedError(f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142")
 
 
 class RefreshTokensAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
+        raise NotImplementedError(f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142")
 
 
 class OrganizationsAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
+        raise NotImplementedError(f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142")
 
 
 class KVMAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
+        raise NotImplementedError(f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142")
 
 
 class KeystoreTrustoreAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
+        raise NotImplementedError(f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142")
 
 
-# Testing stuff...
-
-# config = ApigeeNonProdCredentials()
-# client = ApigeeClient(config=config)
-# developer_apps = DeveloperAppsAPI(client=client)
-# print(developer_apps.list_apps(email="lucas.fantini@nhs.net"))

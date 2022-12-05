@@ -260,27 +260,3 @@ class TestAccessTokenAPI:
         token_api = AccessTokensAPI(client=client)
         pprint.pprint(token_api.delete_token(access_token=token))
 
-    @pytest.mark.nhsd_apim_authorization({"access": "patient", "level": "P0", "login_form": {"username": "9912003073"}})
-    def test_proxy_security(self, client, _nhsd_apim_auth_token_data, nhsd_apim_proxy_url):
-        """This test shows how easy is to access forbiden resources by
-        overriding the token scopes, dont be so scared... in nhsd-prod we do not
-        grant access to this APIs"""
-
-        import requests
-
-        # 1. Get an Apigee access_token P0
-        token = _nhsd_apim_auth_token_data["access_token"]
-        # 2. Try to hit a P9 protected resource
-        url = f"{nhsd_apim_proxy_url}/test-auth/nhs-login/P9"
-        headers = {"Authorization": f"Bearer {token}"}
-        resp = requests.get(url=url, headers=headers)
-        # 3. of course you are not allowed!
-        assert resp.status_code == 403
-        # 4. But...you can modify the scope in your token
-        token_api = AccessTokensAPI(client=client)
-        body = {"scope": "urn:nhsd:apim:user-nhs-login:P9:mock-jwks"}
-        pprint.pprint(token_api.post_token_details(access_token=token, body=body))
-        # 5. and try that call again...
-        resp = requests.get(url=url, headers=headers)
-        assert resp.status_code == 200
-        # 6. Cry... call your mum... repeat.
