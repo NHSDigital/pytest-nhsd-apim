@@ -44,7 +44,7 @@ We present a variety of authenticators including AuthorizationCodeAuthenticator,
     authenticator=ClientCredentialsAuthenticator(config=config)
     token=authenticator.get_token()
 ```
-For a more detailed implementation on the rest of the authenticators please refer to the examples [here](https://github.com/NHSDigital/pytest-nhsd-apim/blob/2e672aa473e4ed61f5b34e50a696fe0823c1d574/tests/test_examples.py#L308).
+For a more detailed implementation on the rest of the authenticators please refer to the examples [here](/tests/test_examples.py#L308).
 ### Apigee APIs
 We also present a variety off Apigee APIs with the benefit of a fully authenticated Apigee client ready to use.
 ```python
@@ -56,13 +56,15 @@ apps = DeveloperAppsAPI(client=client)
 
 print(apps.list_aps('lucas.fantini@nhs.net'))
 ```
-The APIs we offer at the moment are 
+The APIs we offer at the moment are:
 | API  | Methods | Documentation| 
 | ------------- | ------------- |-------------|
-| DeveloperAppsAPI  | [here](/src/pytest_nhsd_apim/apigee_apis.py)  |[Overview](https://apidocs.apigee.com/docs/developer-apps/1/overview)|
-| ApiProductsAPI  | [here](/src/pytest_nhsd_apim/apigee_apis.py)  |[Overview](https://apidocs.apigee.com/docs/api-products/1/overview)|
-| DebugSessionsAPI  | [here](/src/pytest_nhsd_apim/apigee_apis.py)  |[Overview](https://apidocs.apigee.com/docs/debug-sessions/1/overview)|
-| AccessTokensAPI  | [here](/src/pytest_nhsd_apim/apigee_apis.py)  |[Overview](https://apidocs.apigee.com/docs/oauth-20-access-tokens/1/overview)|
+| DeveloperAppsAPI  | [here](/src/pytest_nhsd_apim/apigee_apis.py#L292)  |[Overview](https://apidocs.apigee.com/docs/developer-apps/1/overview)|
+| ApiProductsAPI  | [here](/src/pytest_nhsd_apim/apigee_apis.py#L575)  |[Overview](https://apidocs.apigee.com/docs/api-products/1/overview)|
+| DebugSessionsAPI  | [here](/src/pytest_nhsd_apim/apigee_apis.py#L844)  |[Overview](https://apidocs.apigee.com/docs/debug-sessions/1/overview)|
+| AccessTokensAPI  | [here](/src/pytest_nhsd_apim/apigee_apis.py#L983)  |[Overview](https://apidocs.apigee.com/docs/oauth-20-access-tokens/1/overview)|
 
+For a more detailed implementation of the available APIs please refer to the tests [here](/tests/test_apigee_apis.py).
+We will keep adding APIs with time, if you are looking for a particular APIs not listed above please feel free to open a pull request and send it to us.
 
 
