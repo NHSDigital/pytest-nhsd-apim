@@ -43,17 +43,30 @@ class ApigeeProdCredentials(BaseSettings):
     def check_credentials_config(cls, values):
         print(values)
         """Checks for the right set of credentials"""
-        if all([values.get(key) for key in ["apigee_nhsd_prod_username", "apigee_nhsd_prod_password", "auth_server"]]):
+        if all(
+            [
+                values.get(key)
+                for key in [
+                    "apigee_nhsd_prod_username",
+                    "apigee_nhsd_prod_password",
+                    "auth_server",
+                ]
+            ]
+        ):
             values["auth_method"] = "saml"
             return values
-        elif all([values.get(key) for key in ["auth_server", "apigee_nhsd_prod_passcode"]]):
+        elif all(
+            [values.get(key) for key in ["auth_server", "apigee_nhsd_prod_passcode"]]
+        ):
             values["auth_method"] = "saml"
             return values
         elif values["access_token"]:
             values["auth_method"] = "access_token"
             return values
         else:
-            raise ValueError("Please provide valid credentials or an access_token")  # TODO better error message...
+            raise ValueError(
+                "Please provide valid credentials or an access_token"
+            )  # TODO better error message...
 
     @property
     def org(self):
@@ -109,7 +122,14 @@ class ApigeeNonProdCredentials(BaseSettings):
             values["auth_method"] = "saml"
             return values
         elif all(
-            [values.get(key) for key in ["auth_server", "apigee_nhsd_nonprod_password", "apigee_nhsd_nonprod_username"]]
+            [
+                values.get(key)
+                for key in [
+                    "auth_server",
+                    "apigee_nhsd_nonprod_password",
+                    "apigee_nhsd_nonprod_username",
+                ]
+            ]
         ):
             values["auth_method"] = "saml"
             return values
@@ -155,7 +175,9 @@ class ApigeeNonProdCredentials(BaseSettings):
 
 
 class ApigeeAuthenticator:
-    def __init__(self, config: Union[ApigeeNonProdCredentials, ApigeeProdCredentials]) -> None:
+    def __init__(
+        self, config: Union[ApigeeNonProdCredentials, ApigeeProdCredentials]
+    ) -> None:
         self.config = config
         self._token = None
 
@@ -169,7 +191,11 @@ class ApigeeAuthenticator:
     def _is_token_valid(self):
         if self._token:
             # Verify the token is still valid...
-            options = {"verify_signature": False, "verify_aud": False, "verify_exp": True}
+            options = {
+                "verify_signature": False,
+                "verify_aud": False,
+                "verify_exp": True,
+            }
             try:
                 jwt.decode(self._token, options=options, leeway=10)
                 return True
@@ -192,7 +218,10 @@ class ApigeeAuthenticator:
             resp = SESSION.post(
                 url=url,
                 params=self.config.params,
-                headers={"Authorization": "Basic ZWRnZWNsaTplZGdlY2xpc2VjcmV0", "Accept": "application/json"},
+                headers={
+                    "Authorization": "Basic ZWRnZWNsaTplZGdlY2xpc2VjcmV0",
+                    "Accept": "application/json",
+                },
                 data=self.config.data,
             )
             try:
@@ -228,25 +257,35 @@ class ApigeeClient(RestClient):
     """A simple wraper to a requests session that adds a valid Apigee
     token to the header and makes the base_url available as a property"""
 
-    def __init__(self, config: Union[ApigeeNonProdCredentials, ApigeeProdCredentials]) -> None:
+    def __init__(
+        self, config: Union[ApigeeNonProdCredentials, ApigeeProdCredentials]
+    ) -> None:
         self.authenticator = ApigeeAuthenticator(config=config)
         self.base_url = config.base_url
         self._session = requests.session()
 
     def get(self, *args, **kwargs) -> requests.Response:
-        self._session.headers.update({"Authorization": f"Bearer {self.authenticator.get_token()}"})
+        self._session.headers.update(
+            {"Authorization": f"Bearer {self.authenticator.get_token()}"}
+        )
         return self._session.get(*args, **kwargs)
 
     def post(self, *args, **kwargs) -> requests.Response:
-        self._session.headers.update({"Authorization": f"Bearer {self.authenticator.get_token()}"})
+        self._session.headers.update(
+            {"Authorization": f"Bearer {self.authenticator.get_token()}"}
+        )
         return self._session.post(*args, **kwargs)
 
     def put(self, *args, **kwargs) -> requests.Response:
-        self._session.headers.update({"Authorization": f"Bearer {self.authenticator.get_token()}"})
+        self._session.headers.update(
+            {"Authorization": f"Bearer {self.authenticator.get_token()}"}
+        )
         return self._session.put(*args, **kwargs)
 
     def delete(self, *args, **kwargs) -> requests.Response:
-        self._session.headers.update({"Authorization": f"Bearer {self.authenticator.get_token()}"})
+        self._session.headers.update(
+            {"Authorization": f"Bearer {self.authenticator.get_token()}"}
+        )
         return self._session.delete(*args, **kwargs)
 
 
@@ -480,7 +519,9 @@ class DeveloperAppsAPI:
             )
         return resp.json()
 
-    def get_app_attribute_by_name(self, email: str, app_name: str, attribute_name: str) -> "dict":
+    def get_app_attribute_by_name(
+        self, email: str, app_name: str, attribute_name: str
+    ) -> "dict":
         """Gets a developer app attribute"""
 
         resource = f"/developers/{email}/apps/{app_name}/attributes/{attribute_name}"
@@ -492,7 +533,9 @@ class DeveloperAppsAPI:
             )
         return resp.json()
 
-    def post_app_attribute_by_name(self, email: str, app_name: str, attribute_name: str, body: dict) -> "dict":
+    def post_app_attribute_by_name(
+        self, email: str, app_name: str, attribute_name: str, body: dict
+    ) -> "dict":
         """
         Updates a developer app attribute.
 
@@ -514,7 +557,9 @@ class DeveloperAppsAPI:
             )
         return resp.json()
 
-    def delete_app_attribute_by_name(self, email: str, app_name: str, attribute_name: str) -> "dict":
+    def delete_app_attribute_by_name(
+        self, email: str, app_name: str, attribute_name: str
+    ) -> "dict":
         """Deletes a developer app attribute"""
 
         resource = f"/developers/{email}/apps/{app_name}/attributes/{attribute_name}"
@@ -746,7 +791,9 @@ class ApiProductsAPI:
             )
         return resp.json()
 
-    def get_product_attribute_by_name(self, product_name: str, attribute_name: str) -> "dict":
+    def get_product_attribute_by_name(
+        self, product_name: str, attribute_name: str
+    ) -> "dict":
         """Gets the value of an API product attribute."""
         resource = f"/apiproducts/{product_name}/attributes/{attribute_name}"
         url = f"{self.client.base_url}{resource}"
@@ -757,7 +804,9 @@ class ApiProductsAPI:
             )
         return resp.json()
 
-    def post_product_attribute_by_name(self, product_name: str, attribute_name: str, body: dict) -> "dict":
+    def post_product_attribute_by_name(
+        self, product_name: str, attribute_name: str, body: dict
+    ) -> "dict":
         """
         Updates the value of an API product attribute.
 
@@ -778,7 +827,9 @@ class ApiProductsAPI:
             )
         return resp.json()
 
-    def delete_product_attribute_by_name(self, product_name: str, attribute_name: str) -> "dict":
+    def delete_product_attribute_by_name(
+        self, product_name: str, attribute_name: str
+    ) -> "dict":
         """Deletes an API product attribute"""
         resource = f"/apiproducts/{product_name}/attributes/{attribute_name}"
         url = f"{self.client.base_url}{resource}"
@@ -796,7 +847,9 @@ class DebugSessionsAPI:
     associated pipeline processing metadata for debugging purposes
     """
 
-    def __init__(self, env_name: str, api_name: str, revision_number: str, client: RestClient) -> None:
+    def __init__(
+        self, env_name: str, api_name: str, revision_number: str, client: RestClient
+    ) -> None:
         self.client = client
         self.env_name = env_name
         self.api_name = api_name
@@ -1145,23 +1198,17 @@ class DeploymentsAPI:
 
     def __init__(self, client: RestClient) -> None:
         self.client = client
-
-    def get_deployments(self):
-        pass
-
-    def get_deployments_by_apiname(self):
-        pass
-
-    def get_deployments_by_revision(self):
-        pass
-
-    def post_deployments_by_revision(self):
-        pass
+        raise NotImplementedError(
+            f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142"
+        )
 
 
 class UserRolesAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
+        raise NotImplementedError(
+            f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142"
+        )
 
 
 class AppKeysAPI:
@@ -1181,43 +1228,54 @@ class AppKeysAPI:
 
     def __init__(self, client: RestClient) -> None:
         self.client = client
-        raise NotImplementedError(f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142")
+        raise NotImplementedError(
+            f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142"
+        )
 
 
 class UsersAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
-        raise NotImplementedError(f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142")
-
+        raise NotImplementedError(
+            f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142"
+        )
 
 
 class AuthorizationCodesAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
-        raise NotImplementedError(f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142")
+        raise NotImplementedError(
+            f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142"
+        )
 
 
 class RefreshTokensAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
-        raise NotImplementedError(f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142")
+        raise NotImplementedError(
+            f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142"
+        )
 
 
 class OrganizationsAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
-        raise NotImplementedError(f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142")
+        raise NotImplementedError(
+            f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142"
+        )
 
 
 class KVMAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
-        raise NotImplementedError(f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142")
+        raise NotImplementedError(
+            f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142"
+        )
 
 
 class KeystoreTrustoreAPI:
     def __init__(self, client: RestClient) -> None:
         self.client = client
-        raise NotImplementedError(f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142")
-
-
+        raise NotImplementedError(
+            f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142"
+        )
