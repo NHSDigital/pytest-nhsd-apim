@@ -198,14 +198,13 @@ class AuthorizationCodeAuthenticator(Authenticator):
     @staticmethod
     def _get_authorize_endpoint_response(
         session: requests.Session,
-        identity_service_base_url,
+        auth_url,
         client_id,
         callback_url,
         auth_scope: Literal["nhs-login", "nhs-cis2"],
     ):
-        authorize_url = f"{identity_service_base_url}/authorize"
         resp = session.get(
-            authorize_url,
+            auth_url,
             params={
                 "client_id": client_id,
                 "redirect_uri": callback_url,
@@ -216,7 +215,7 @@ class AuthorizationCodeAuthenticator(Authenticator):
         )
         if resp.status_code != 200:
             raise RuntimeError(
-                f"{authorize_url} request returned {resp.status_code}: {resp.text}"
+                f"{auth_url} request returned {resp.status_code}: {resp.text}"
             )
         return resp
 
@@ -282,7 +281,7 @@ class AuthorizationCodeAuthenticator(Authenticator):
         # follows those redirects.
         authorize_response = self._get_authorize_endpoint_response(
             login_session,
-            self.config.identity_service_base_url,
+            self.config.auth_url,
             self.config.client_id,
             self.config.callback_url,
             self.config.scope,
@@ -327,7 +326,7 @@ class AuthorizationCodeAuthenticator(Authenticator):
 
         # 5. Finally, get an access token.
         resp = login_session.post(
-            f"{self.config.identity_service_base_url}/token",
+            self.config.token_url,
             data={
                 "grant_type": "authorization_code",
                 "code": auth_code,
