@@ -19,21 +19,6 @@ import requests
 from lxml import html
 
 
-class ApigeeConfig(BaseModel):
-    """Basic Apigee config"""
-
-    environment: Literal[
-        "internal-dev",
-        "internal-qa",
-        "internal-dev-sandbox",
-        "internal-qa-sandbox",
-        "ref",
-        "int",
-        "prod",
-    ] = "internal-dev"
-    org: Literal["nhsd-nonprod", "nhsd-prod"] = "nhsd-nonprod"
-
-
 class KeycloakConfig(BaseModel):
     """Basic Keycloak config"""
 
