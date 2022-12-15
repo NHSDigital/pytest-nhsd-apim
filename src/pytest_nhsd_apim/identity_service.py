@@ -33,20 +33,6 @@ class ApigeeConfig(BaseModel):
     ] = "internal-dev"
     org: Literal["nhsd-nonprod", "nhsd-prod"] = "nhsd-nonprod"
 
-    @staticmethod
-    def _identity_service_base_url(env):
-        prefix = "https://"
-        host = "api.service.nhs.uk"
-        path = "/oauth2-mock"  # lets just support mock auth v2...
-        if env != "prod":
-            prefix += f"{env}."
-        return f"{prefix}{host}{path}"
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.__exceptions = []
-        self.identity_service_base_url: str = self._identity_service_base_url(self.environment)
-
 
 class KeycloakConfig(BaseModel):
     """Basic Keycloak config"""
@@ -81,9 +67,16 @@ class KeycloakUserConfig(KeycloakConfig):
 class AuthorizationCodeConfig(ApigeeConfig):
     """Config needed to authenticate using authorizaztion_code flow in the identity service"""
 
+    def _identity_service_base_url(env):
+        prefix = "https://"
+        host = "api.service.nhs.uk"
+        path = "/oauth2-mock"  # lets just support mock auth v2...
+        if env != "prod":
+            prefix += f"{env}."
+        return f"{prefix}{host}{path}"
+
     callback_url: HttpUrl
-    auth_url: HttpUrl = f"{ApigeeConfig.identity_service_base_url}/authorize"
-    token_url: HttpUrl = f"{ApigeeConfig.identity_service_base_url}/token"
+    identity_service_base_url: HttpUrl = _identity_service_base_url(ApigeeConfig.environment)
     client_id: str
     client_secret: str
     scope: Literal["nhs-login", "nhs-cis2"]
@@ -114,9 +107,18 @@ class AuthorizationCodeConfig(ApigeeConfig):
 class ClientCredentialsConfig(ApigeeConfig):
     """Config needed to authenticate using client_credentials flow in the identity service"""
 
+    def _identity_service_base_url(env):
+        prefix = "https://"
+        host = "api.service.nhs.uk"
+        path = "/oauth2-mock"  # lets just support mock auth v2...
+        if env != "prod":
+            prefix += f"{env}."
+        return f"{prefix}{host}{path}"
+
     client_id: str
     jwt_private_key: str
     jwt_kid: str
+    identity_service_base_url: HttpUrl = _identity_service_base_url(ApigeeConfig.environment)
 
     def encode_jwt(self):
         url = f"{self.identity_service_base_url}/token"
@@ -286,7 +288,7 @@ class AuthorizationCodeAuthenticator(Authenticator):
         # follows those redirects.
         authorize_response = self._get_authorize_endpoint_response(
             login_session,
-            self.config.auth_url,
+            f"{self.config.identity_service_base_url}/authorize",
             self.config.client_id,
             self.config.callback_url,
             self.config.scope,
@@ -331,7 +333,7 @@ class AuthorizationCodeAuthenticator(Authenticator):
 
         # 5. Finally, get an access token.
         resp = login_session.post(
-            self.config.token_url,
+            f"{self.config.identity_service_base_url}/token",
             data={
                 "grant_type": "authorization_code",
                 "code": auth_code,
