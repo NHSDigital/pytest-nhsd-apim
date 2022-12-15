@@ -14,7 +14,7 @@ from pytest_nhsd_apim.identity_service import (
     KeycloakUserConfig,
     KeycloakUserAuthenticator,
     TokenExchangeConfig,
-    TokenExcchangeAuthenticator,
+    TokenExchangeAuthenticator,
 )
 
 
@@ -390,7 +390,7 @@ def test_token_exchange_authenticator(
     # 4. Set yout token exchange config
     config = TokenExchangeConfig(
         environment=apigee_environment,
-        identity_service_base_url=f"https://{apigee_environment}.api.service.nhs.uk/oauth2",
+        identity_service_base_url=f"https://{apigee_environment}.api.service.nhs.uk/oauth2-mock",
         client_id=_test_app_credentials["consumerKey"],
         jwt_private_key=_jwt_keys["private_key_pem"],
         jwt_kid="test-1",
@@ -398,7 +398,7 @@ def test_token_exchange_authenticator(
     )
 
     # 5. Pass the config to the Authenticator
-    authenticator = TokenExcchangeAuthenticator(config=config)
+    authenticator = TokenExchangeAuthenticator(config=config)
 
     # 6. Get your token
     token_response = authenticator.get_token()

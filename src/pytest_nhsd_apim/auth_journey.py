@@ -17,7 +17,7 @@ from .identity_service import (
     AuthorizationCodeConfig,
     AuthorizationCodeAuthenticator,
     TokenExchangeConfig,
-    TokenExcchangeAuthenticator,
+    TokenExchangeAuthenticator,
     KeycloakUserConfig,
     KeycloakUserAuthenticator,
 )
@@ -66,7 +66,7 @@ def get_access_token_via_user_restricted_flow_separate_auth(
         jwt_kid=jwt_kid,
         id_token=id_token,
     )
-    authenticator = TokenExcchangeAuthenticator(config=config)
+    authenticator = TokenExchangeAuthenticator(config=config)
     return authenticator.get_token()
 
 

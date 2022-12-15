@@ -428,7 +428,7 @@ class KeycloakUserAuthenticator(Authenticator):
         return resp3.json()
 
 
-class TokenExcchangeAuthenticator(Authenticator):
+class TokenExchangeAuthenticator(Authenticator):
     """
     Get u authenticated using the token_exchange flow in identity service
     """
