@@ -342,8 +342,6 @@ def test_authorization_code_authenticator(_test_app_credentials, apigee_environm
         environment=apigee_environment,
         identity_service_base_url=f"https://{apigee_environment}.api.service.nhs.uk/oauth2-mock",
         callback_url="https://example.org/callback",
-        auth_url=f"https://{apigee_environment}.api.service.nhs.uk/oauth2-mock/authorize",
-        token_url=f"https://{apigee_environment}.api.service.nhs.uk/oauth2-mock/token",
         client_id=_test_app_credentials["consumerKey"],
         client_secret=_test_app_credentials["consumerSecret"],
         scope="nhs-cis2",
