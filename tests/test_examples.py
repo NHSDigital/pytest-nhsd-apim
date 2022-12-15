@@ -312,7 +312,7 @@ def test_client_credentials_authenticator(
     # 1. Set your app config
     config = ClientCredentialsConfig(
         environment=apigee_environment,
-        identity_service_base_url=f"https://{apigee_environment}.api.service.nhs.uk/oauth2",
+        identity_service_base_url=f"https://{apigee_environment}.api.service.nhs.uk/oauth2-mock",
         client_id=_test_app_credentials["consumerKey"],
         jwt_private_key=_jwt_keys["private_key_pem"],
         jwt_kid="test-1",

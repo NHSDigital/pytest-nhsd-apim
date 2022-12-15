@@ -33,14 +33,19 @@ class ApigeeConfig(BaseModel):
     ] = "internal-dev"
     org: Literal["nhsd-nonprod", "nhsd-prod"] = "nhsd-nonprod"
 
-    @property
-    def identity_service_base_url(self):
+    @staticmethod
+    def _identity_service_base_url(env):
         prefix = "https://"
         host = "api.service.nhs.uk"
         path = "/oauth2-mock"  # lets just support mock auth v2...
-        if self.environment != "prod":
-            prefix += f"{self.environment}."
+        if env != "prod":
+            prefix += f"{env}."
         return f"{prefix}{host}{path}"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.__exceptions = []
+        self.identity_service_base_url: str = self._identity_service_base_url(self.environment)
 
 
 class KeycloakConfig(BaseModel):
