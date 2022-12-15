@@ -64,7 +64,7 @@ class KeycloakUserConfig(KeycloakConfig):
     login_form: dict
 
 
-class AuthorizationCodeConfig(ApigeeConfig):
+class AuthorizationCodeConfig(BaseModel):
     """Config needed to authenticate using authorizaztion_code flow in the identity service"""
 
     def _identity_service_base_url(env):
@@ -75,8 +75,18 @@ class AuthorizationCodeConfig(ApigeeConfig):
             prefix += f"{env}."
         return f"{prefix}{host}{path}"
 
+    environment: Literal[
+        "internal-dev",
+        "internal-qa",
+        "internal-dev-sandbox",
+        "internal-qa-sandbox",
+        "ref",
+        "int",
+        "prod",
+    ] = "internal-dev"
+    org: Literal["nhsd-nonprod", "nhsd-prod"] = "nhsd-nonprod"
     callback_url: HttpUrl
-    identity_service_base_url: HttpUrl = _identity_service_base_url(ApigeeConfig.environment)
+    identity_service_base_url: HttpUrl = _identity_service_base_url(environment)
     client_id: str
     client_secret: str
     scope: Literal["nhs-login", "nhs-cis2"]
@@ -104,7 +114,7 @@ class AuthorizationCodeConfig(ApigeeConfig):
         return environment
 
 
-class ClientCredentialsConfig(ApigeeConfig):
+class ClientCredentialsConfig(BaseModel):
     """Config needed to authenticate using client_credentials flow in the identity service"""
 
     def _identity_service_base_url(env):
@@ -115,10 +125,20 @@ class ClientCredentialsConfig(ApigeeConfig):
             prefix += f"{env}."
         return f"{prefix}{host}{path}"
 
+    environment: Literal[
+        "internal-dev",
+        "internal-qa",
+        "internal-dev-sandbox",
+        "internal-qa-sandbox",
+        "ref",
+        "int",
+        "prod",
+    ] = "internal-dev"
+    org: Literal["nhsd-nonprod", "nhsd-prod"] = "nhsd-nonprod"
     client_id: str
     jwt_private_key: str
     jwt_kid: str
-    identity_service_base_url: HttpUrl = _identity_service_base_url(ApigeeConfig.environment)
+    identity_service_base_url: HttpUrl = _identity_service_base_url(environment)
 
     def encode_jwt(self):
         url = f"{self.identity_service_base_url}/token"
