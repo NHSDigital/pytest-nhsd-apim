@@ -19,30 +19,6 @@ import requests
 from lxml import html
 
 
-class ApigeeConfig(BaseModel):
-    """Basic Apigee config"""
-
-    environment: Literal[
-        "internal-dev",
-        "internal-qa",
-        "internal-dev-sandbox",
-        "internal-qa-sandbox",
-        "ref",
-        "int",
-        "prod",
-    ] = "internal-dev"
-    org: Literal["nhsd-nonprod", "nhsd-prod"] = "nhsd-nonprod"
-
-    @property
-    def identity_service_base_url(self):
-        prefix = "https://"
-        host = "api.service.nhs.uk"
-        path = "/oauth2-mock"  # lets just support mock auth v2...
-        if self.environment != "prod":
-            prefix += f"{self.environment}."
-        return f"{prefix}{host}{path}"
-
-
 class KeycloakConfig(BaseModel):
     """Basic Keycloak config"""
 
@@ -73,12 +49,29 @@ class KeycloakUserConfig(KeycloakConfig):
     login_form: dict
 
 
-class AuthorizationCodeConfig(ApigeeConfig):
+class AuthorizationCodeConfig(BaseModel):
     """Config needed to authenticate using authorizaztion_code flow in the identity service"""
 
+    def _identity_service_base_url(env):
+        prefix = "https://"
+        host = "api.service.nhs.uk"
+        path = "/oauth2-mock"  # lets just support mock auth v2...
+        if env != "prod":
+            prefix += f"{env}."
+        return f"{prefix}{host}{path}"
+
+    environment: Literal[
+        "internal-dev",
+        "internal-qa",
+        "internal-dev-sandbox",
+        "internal-qa-sandbox",
+        "ref",
+        "int",
+        "prod",
+    ] = "internal-dev"
+    org: Literal["nhsd-nonprod", "nhsd-prod"] = "nhsd-nonprod"
     callback_url: HttpUrl
-    auth_url: HttpUrl = f"{ApigeeConfig.identity_service_base_url}/authorize"
-    token_url: HttpUrl = f"{ApigeeConfig.identity_service_base_url}/token"
+    identity_service_base_url: HttpUrl = _identity_service_base_url(environment)
     client_id: str
     client_secret: str
     scope: Literal["nhs-login", "nhs-cis2"]
@@ -106,12 +99,31 @@ class AuthorizationCodeConfig(ApigeeConfig):
         return environment
 
 
-class ClientCredentialsConfig(ApigeeConfig):
+class ClientCredentialsConfig(BaseModel):
     """Config needed to authenticate using client_credentials flow in the identity service"""
 
+    def _identity_service_base_url(env):
+        prefix = "https://"
+        host = "api.service.nhs.uk"
+        path = "/oauth2-mock"  # lets just support mock auth v2...
+        if env != "prod":
+            prefix += f"{env}."
+        return f"{prefix}{host}{path}"
+
+    environment: Literal[
+        "internal-dev",
+        "internal-qa",
+        "internal-dev-sandbox",
+        "internal-qa-sandbox",
+        "ref",
+        "int",
+        "prod",
+    ] = "internal-dev"
+    org: Literal["nhsd-nonprod", "nhsd-prod"] = "nhsd-nonprod"
     client_id: str
     jwt_private_key: str
     jwt_kid: str
+    identity_service_base_url: HttpUrl = _identity_service_base_url(environment)
 
     def encode_jwt(self):
         url = f"{self.identity_service_base_url}/token"
@@ -198,14 +210,13 @@ class AuthorizationCodeAuthenticator(Authenticator):
     @staticmethod
     def _get_authorize_endpoint_response(
         session: requests.Session,
-        identity_service_base_url,
+        auth_url,
         client_id,
         callback_url,
         auth_scope: Literal["nhs-login", "nhs-cis2"],
     ):
-        authorize_url = f"{identity_service_base_url}/authorize"
         resp = session.get(
-            authorize_url,
+            auth_url,
             params={
                 "client_id": client_id,
                 "redirect_uri": callback_url,
@@ -216,7 +227,7 @@ class AuthorizationCodeAuthenticator(Authenticator):
         )
         if resp.status_code != 200:
             raise RuntimeError(
-                f"{authorize_url} request returned {resp.status_code}: {resp.text}"
+                f"{auth_url} request returned {resp.status_code}: {resp.text}"
             )
         return resp
 
@@ -282,7 +293,7 @@ class AuthorizationCodeAuthenticator(Authenticator):
         # follows those redirects.
         authorize_response = self._get_authorize_endpoint_response(
             login_session,
-            self.config.identity_service_base_url,
+            f"{self.config.identity_service_base_url}/authorize",
             self.config.client_id,
             self.config.callback_url,
             self.config.scope,
@@ -402,7 +413,7 @@ class KeycloakUserAuthenticator(Authenticator):
         return resp3.json()
 
 
-class TokenExcchangeAuthenticator(Authenticator):
+class TokenExchangeAuthenticator(Authenticator):
     """
     Get u authenticated using the token_exchange flow in identity service
     """

@@ -17,7 +17,7 @@ from .identity_service import (
     AuthorizationCodeConfig,
     AuthorizationCodeAuthenticator,
     TokenExchangeConfig,
-    TokenExcchangeAuthenticator,
+    TokenExchangeAuthenticator,
     KeycloakUserConfig,
     KeycloakUserAuthenticator,
 )
@@ -66,7 +66,7 @@ def get_access_token_via_user_restricted_flow_separate_auth(
         jwt_kid=jwt_kid,
         id_token=id_token,
     )
-    authenticator = TokenExcchangeAuthenticator(config=config)
+    authenticator = TokenExchangeAuthenticator(config=config)
     return authenticator.get_token()
 
 
@@ -84,8 +84,7 @@ def get_access_token_via_user_restricted_flow_combined_auth(
     config = AuthorizationCodeConfig(
         environment=apigee_environment,
         callback_url=callback_url,
-        auth_url=f"{identity_service_base_url}/authorize",
-        token_url=f"{identity_service_base_url}/token",
+        identity_service_base_url=identity_service_base_url,
         client_id=client_id,
         client_secret=client_secret,
         scope=auth_scope,
