@@ -979,6 +979,30 @@ class DebugSessionsAPI:
             )
         return resp.json()
 
+    def get_apigee_variable_from_trace(self, name: str, data: dict):
+        executions = [
+            x.get("results", None)
+            for x in data["point"]
+            if x.get("id", "") == "Execution"
+        ]
+        executions = list(filter(lambda x: x != [], executions))
+
+        variable_accesses = []
+
+        for execution in executions:
+            for item in execution:
+                if item.get("ActionResult", "") == "VariableAccess":
+                    variable_accesses.append(item)
+
+        for result in variable_accesses:  # Configured by the application
+            for item in result["accessList"]:
+                if item.get("Get", {}).get("name", "") == name:
+                    return item.get("Get", {}).get("value", "")
+                if item.get("Set", {}).get("name", "") == name:
+                    return item.get("Set", {}).get("value", "")
+
+        return None
+
 
 class AccessTokensAPI:
     """
