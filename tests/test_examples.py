@@ -417,7 +417,7 @@ def test_token_exchange_authenticator(
 @pytest.mark.nhsd_apim_authorization(access="application", level="level3")
 def test_trace(nhsd_apim_proxy_url, nhsd_apim_auth_headers, trace):
     session_name = "test_session"
-    session = trace.post_debugsession(session_name)
+    trace.post_debugsession(session_name)
 
     resp = requests.get(
         nhsd_apim_proxy_url + "/test-auth/app/level3", headers=nhsd_apim_auth_headers
