@@ -416,26 +416,27 @@ def test_token_exchange_authenticator(
 
 @pytest.mark.nhsd_apim_authorization(access="application", level="level3")
 def test_trace(nhsd_apim_proxy_url, nhsd_apim_auth_headers, trace):
-    session = trace.post_debugsession("test_session")
+    session_name = "test_session"
+    session = trace.post_debugsession(session_name)
 
     resp = requests.get(
         nhsd_apim_proxy_url + "/test-auth/app/level3", headers=nhsd_apim_auth_headers
     )
     assert resp.status_code == 200
 
-    trace_ids = trace.get_transaction_data(session_name=session["name"])
+    trace_ids = trace.get_transaction_data(session_name=session_name)
     if len(trace_ids) > 1:
         raise Exception("More than one transaction found in trace")
     if len(trace_ids) == 0:
         raise Exception("No transactions found in trace")
 
     trace_data = trace.get_transaction_data_by_id(
-        session_name=session["name"], transaction_id=trace_ids[0]
+        session_name=session_name, transaction_id=trace_ids[0]
     )
     status_code_from_trace = trace.get_apigee_variable_from_trace(
         name="message.status.code", data=trace_data
     )
 
-    trace.delete_debugsession_by_name(session["name"])
+    trace.delete_debugsession_by_name(session_name)
 
     assert status_code_from_trace == "200"
