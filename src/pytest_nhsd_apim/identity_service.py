@@ -151,7 +151,51 @@ class KeycloakSignedJWTConfig:
 
 
 class NHSLoginConfig:
-    pass
+    """Config needed to authenticate using NHS Login"""
+
+    # issuer": "https://auth.aos.signin.nhs.uk", 
+    # "authorization_endpoint": "https://auth.aos.signin.nhs.uk/authorize", 
+    # "token_endpoint": "https://auth.aos.signin.nhs.uk/token", 
+    # "jwks_uri": "https://auth.aos.signin.nhs.uk/.well-known/jwks.json"
+
+    def _nhs_login_service_base_url(env):
+        prefix = "https://"
+        host = "api.service.nhs.uk"
+        path = "/oauth2"  # lets just support mock auth v2...
+        if env != "prod":
+            prefix += f"{env}."
+        return f"{prefix}{host}{path}"
+
+    environment: Literal[
+        "internal-dev",
+        "internal-qa",
+        "internal-dev-sandbox",
+        "internal-qa-sandbox",
+        "ref",
+        "int",
+        "prod",
+    ] = "internal-dev"
+    org: Literal["nhsd-nonprod", "nhsd-prod"] = "nhsd-nonprod"
+    client_id: str
+    jwt_private_key: str
+    jwt_kid: str
+    #identity_service_base_url: HttpUrl = _nhs_login_service_base_url(environment)
+
+    def encode_jwt(self):
+        url = "https://auth.aos.signin.nhs.uk/token"
+        claims = {
+            "sub": "APIM-1",
+            "iss": "APIM-1",
+            "jti": str(uuid.uuid4()),
+            "aud": url,
+            "exp": int(time()) + 300,  # 5 minutes in the future
+        }
+        additional_headers = {"kid": self.jwt_kid}
+        client_assertion = jwt.encode(
+            claims, self.jwt_private_key, algorithm="RS512", headers=additional_headers
+        )
+        return client_assertion
+    
 
 
 class BananaAuthenticatorConfig:  # Placeholder
