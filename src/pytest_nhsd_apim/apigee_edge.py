@@ -15,6 +15,11 @@ import pytest
 import requests
 
 from .log import log, log_method
+from .apigee_apis import (
+    ApigeeNonProdCredentials,
+    ApigeeClient,
+    DebugSessionsAPI
+)
 
 APIGEE_BASE_URL = "https://api.enterprise.apigee.com/v1/"
 
@@ -525,3 +530,19 @@ def _test_app_callback_url(_create_test_app):
 @log_method
 def _test_app_id(nhsd_apim_config):
     return nhsd_apim_config["APIGEE_APP_ID"]
+
+@pytest.fixture()
+@log_method
+def trace(_apigee_proxy):
+    """
+    Authenticated wrapper around the DebugSessionsAPI class
+    """
+    config = ApigeeNonProdCredentials()
+    client =  ApigeeClient(config=config)
+    debug = DebugSessionsAPI(
+        client=client,
+        env_name=_apigee_proxy["environment"],
+        api_name=_apigee_proxy["name"],
+        revision_number=_apigee_proxy["revision"]
+    )
+    return debug
