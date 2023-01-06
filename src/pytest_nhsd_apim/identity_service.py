@@ -1,8 +1,9 @@
 """
-This is a self contain wraper for a bunch of authentication methods in APIM. NOT
-ONLY the identity service is taking into account in here, you will also find
-authenticators for keycloack and more... so feel free to keep adding
-authenticators here and maybe move this file to its own library.
+This is a self-contained wrapper for a bunch of authentication
+methods in APIM. NOT ONLY the identity service is taken into 
+account in here, you will also find authenticators for keycloak 
+and more... Feel free to keep adding authenticators here and 
+maybe move this file to its own library.
 """
 
 import uuid
@@ -19,6 +20,7 @@ import requests
 from lxml import html
 
 
+#### Config models
 class KeycloakConfig(BaseModel):
     """Basic Keycloak config"""
 
@@ -50,7 +52,7 @@ class KeycloakUserConfig(KeycloakConfig):
 
 
 class AuthorizationCodeConfig(BaseModel):
-    """Config needed to authenticate using authorizaztion_code flow in the identity service"""
+    """Config needed to authenticate using authorization_code flow in the identity service"""
 
     def _identity_service_base_url(env):
         prefix = "https://"
@@ -149,8 +151,8 @@ class TokenExchangeConfig(ClientCredentialsConfig):
 class KeycloakSignedJWTConfig:
     pass
 
-
-class NHSLoginConfig:
+# currently only targets AOS environment
+class NHSLoginConfig(AuthorizationCodeConfig):
     """Config needed to authenticate using NHS Login"""
 
     # issuer": "https://auth.aos.signin.nhs.uk", 
@@ -158,31 +160,27 @@ class NHSLoginConfig:
     # "token_endpoint": "https://auth.aos.signin.nhs.uk/token", 
     # "jwks_uri": "https://auth.aos.signin.nhs.uk/.well-known/jwks.json"
 
-    def _nhs_login_service_base_url(env):
-        prefix = "https://"
-        host = "api.service.nhs.uk"
-        path = "/oauth2"  # lets just support mock auth v2...
-        if env != "prod":
-            prefix += f"{env}."
-        return f"{prefix}{host}{path}"
+    def __init__(self, **kwargs):
+        openid_config = requests.get("https://auth.aos.signin.nhs.uk/.well-known/openid-configuration").json()
+        self.identity_service_base_url = openid_config["issuer"]
 
-    environment: Literal[
-        "internal-dev",
-        "internal-qa",
-        "internal-dev-sandbox",
-        "internal-qa-sandbox",
-        "ref",
-        "int",
-        "prod",
-    ] = "internal-dev"
-    org: Literal["nhsd-nonprod", "nhsd-prod"] = "nhsd-nonprod"
-    client_id: str
+        well_known_jwks: list = requests.get(openid_config["jwks_uri"]).json()
+        well_known_key = well_known_jwks['keys'].pop()
+        self.jwt_kid = well_known_key["kid"]
+        self.alg = well_known_key["alg"]
+
+        super().__init__(**kwargs)
+
+    callback_url: HttpUrl = "https://nhsd-apim-testing-int-ns.herokuapp.com/nhslogin/callback"
+    identity_service_base_url: HttpUrl
     jwt_private_key: str
-    jwt_kid: str
-    #identity_service_base_url: HttpUrl = _nhs_login_service_base_url(environment)
+    jwt_kid
+    alg: str
+    scope: Literal = "openid profile"
+    authorize_code: str
 
     def encode_jwt(self):
-        url = "https://auth.aos.signin.nhs.uk/token"
+        url = f"{self.identity_service_base_url}/token"
         claims = {
             "sub": "APIM-1",
             "iss": "APIM-1",
@@ -192,7 +190,7 @@ class NHSLoginConfig:
         }
         additional_headers = {"kid": self.jwt_kid}
         client_assertion = jwt.encode(
-            claims, self.jwt_private_key, algorithm="RS512", headers=additional_headers
+            claims, self.jwt_private_key, algorithm=self.alg, headers=additional_headers
         )
         return client_assertion
     
@@ -201,7 +199,7 @@ class NHSLoginConfig:
 class BananaAuthenticatorConfig:  # Placeholder
     pass
 
-
+### Authenticators
 class Authenticator(ABC):
     """Defines the interface"""
 
@@ -516,12 +514,32 @@ class NHSLoginSandpitAuthenticator(Authenticator):
 class NHSLoginAosAuthenticator(Authenticator):
     """Authenticates you against NHS-Login aos environment"""
 
-    def __init__(self, config=NHSLoginConfig) -> None:
-        self.config = config
+    def __init__(self, config=NHSLoginConfig):
+        super().__init__(config)
+
+    # will need to implement SPA web scraping to do this
+    # assuming NHS login don't provide a no-HTML API
+    def _get_authorize_code(self):
         raise NotImplemented(f"TODO")
 
     def get_token(self):
-        raise NotImplemented(f"TODO")
+        code = self.config.authorize_code or self._get_authorize_code()
+        login_session = requests.session()
+        data = {
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": self.config.callback_url,
+            "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+            "client_assertion": self.config.encode_jwt(),
+        }
+        # 1. Do the post call to the identity service
+        url = f"{self.config.nhs_login_service_base_url}/token"
+        resp = login_session.post(url, data=data)
+        # 2. Catch any unexpected error
+        if resp.status_code != 200:
+            raise RuntimeError(f"{resp.status_code}: {resp.text}")
+        # 3. Return your sweet sweet profit
+        return resp.json()
 
 
 class NHSLoginProdAuthenticator(Authenticator):
