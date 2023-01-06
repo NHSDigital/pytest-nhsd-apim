@@ -208,8 +208,8 @@ class TestDebugSessionAPI:
         debugsession = DebugSessionsAPI(
             client=client, env_name="internal-dev", api_name="mock-jwks-internal-dev", revision_number="17"
         )
-        body = "my_session"
-        pprint.pprint(debugsession.post_debugsession(body=body))
+        session = "my_session"
+        pprint.pprint(debugsession.post_debugsession(session=session))
 
     def test_delete_debugsession_by_name(self, client):
         debugsession = DebugSessionsAPI(
@@ -222,19 +222,12 @@ class TestDebugSessionAPI:
         debugsession = DebugSessionsAPI(
             client=client, env_name="internal-dev", api_name="mock-jwks-internal-dev", revision_number="17"
         )
-        debugsession.post_debugsession(body="my_session")
+        debugsession.post_debugsession(session="my_session")
         pprint.pprint(debugsession.get_transaction_data(session_name="my_session"))
         debugsession.delete_debugsession_by_name(session_name="my_session")
 
-    def test_get_transaction_data_by_id(self, client):
-        # TODO: Need to actually make a request to the proxy to get the transaction_id
-        # debugsession = DebugSessionsAPI(
-        #     client=client, env_name="internal-dev", api_name="mock-jwks-internal-dev", revision_number="17"
-        # )
-        # debugsession.post_debugsession(body="my_session")
-        # pprint.pprint(debugsession.get_transaction_data_by_id(session_name="my_session", transaction_id="1"))
-        # debugsession.delete_debugsession_by_name(session_name="my_session")
-        pass
+    # get_transaction_data_by_id functionality needs a real test and is tested as part of test_trace in test_examples.py
+
 
 
 class TestAccessTokenAPI:
