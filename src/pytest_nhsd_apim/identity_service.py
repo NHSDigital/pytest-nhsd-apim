@@ -509,6 +509,8 @@ class NHSLoginSandpitAuthenticator(Authenticator):
 
 class NHSLoginAosAuthenticator(Authenticator):
     """Authenticates you against NHS-Login aos environment"""
+    # This is only partially implemented. See below for usage:
+    # https://nhsd-confluence.digital.nhs.uk/display/APM/KOP-085+Generating+NHS+login+ID+tokens
 
     def __init__(self, config=NHSLoginConfig):
         super().__init__(config)
