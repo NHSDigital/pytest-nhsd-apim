@@ -76,7 +76,7 @@ class AuthorizationCodeConfig(BaseModel):
     identity_service_base_url: HttpUrl = _identity_service_base_url(environment)
     client_id: str
     client_secret: str
-    scope: Literal["nhs-login", "nhs-cis2", "openid profile"]
+    scope: Literal["nhs-login", "nhs-cis2"]
     login_form: dict
 
     @validator("environment")
@@ -152,17 +152,12 @@ class KeycloakSignedJWTConfig:
     pass
 
 # currently only targets AOS environment
-class NHSLoginConfig(AuthorizationCodeConfig):
+class NHSLoginConfig(BaseModel):
     """Config needed to authenticate using NHS Login"""
-
-    # issuer": "https://auth.aos.signin.nhs.uk", 
-    # "authorization_endpoint": "https://auth.aos.signin.nhs.uk/authorize", 
-    # "token_endpoint": "https://auth.aos.signin.nhs.uk/token", 
-    # "jwks_uri": "https://auth.aos.signin.nhs.uk/.well-known/jwks.json"
 
     def __init__(self, **kwargs):
         openid_config = requests.get("https://auth.aos.signin.nhs.uk/.well-known/openid-configuration").json()
-        self.identity_service_base_url = openid_config["issuer"]
+        self.nhs_login_base_url = openid_config["issuer"]
 
         well_known_jwks: list = requests.get(openid_config["jwks_uri"]).json()
         well_known_key = well_known_jwks['keys'].pop()
@@ -172,18 +167,19 @@ class NHSLoginConfig(AuthorizationCodeConfig):
         super().__init__(**kwargs)
 
     callback_url: HttpUrl = "https://nhsd-apim-testing-int-ns.herokuapp.com/nhslogin/callback"
-    identity_service_base_url: HttpUrl
+    nhs_login_base_url: HttpUrl
+    client_id: str = "APIM-1"
     jwt_private_key: str
     jwt_kid: str
     alg: str
-    scope: Literal["nhs-login", "nhs-cis2", "openid profile"] = "openid profile"
+    scope: str = "openid profile"
     authorize_code: str
 
     def encode_jwt(self):
         url = f"{self.identity_service_base_url}/token"
         claims = {
-            "sub": "APIM-1",
-            "iss": "APIM-1",
+            "sub": self.client_id,
+            "iss": self.client_id,
             "jti": str(uuid.uuid4()),
             "aud": url,
             "exp": int(time()) + 300,  # 5 minutes in the future
@@ -533,7 +529,7 @@ class NHSLoginAosAuthenticator(Authenticator):
             "client_assertion": self.config.encode_jwt(),
         }
         # 1. Do the post call to the identity service
-        url = f"{self.config.nhs_login_service_base_url}/token"
+        url = f"{self.config.nhs_login_base_url}/token"
         resp = login_session.post(url, data=data)
         # 2. Catch any unexpected error
         if resp.status_code != 200:
