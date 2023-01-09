@@ -869,7 +869,7 @@ class DebugSessionsAPI:
             )
         return resp.json()
 
-    def post_debugsession(self, body: dict, **query_params):
+    def post_debugsession(self, session: str = "default", header_filters: dict = {}, qparam_filters: dict = {}):
         """
         Creates a debug session.
 
@@ -923,7 +923,14 @@ class DebugSessionsAPI:
         """
         resource = f"/environments/{self.env_name}/apis/{self.api_name}/revisions/{self.revision_number}/debugsessions"
         url = f"{self.client.base_url}{resource}"
-        resp = self.client.post(url=url, params=query_params, json=body)
+
+        query_params = { "session": session }
+        for k,v in header_filters.items():
+            query_params[f"header_{k}"] = v
+        for k,v in qparam_filters.items():
+            query_params[f"qparam_{k}"] = v
+
+        resp = self.client.post(url=url, params=query_params)
         if resp.status_code != 201:
             raise Exception(
                 f"POST request to {resp.url} failed with status_code: {resp.status_code}, Reason: {resp.reason} and Content: {resp.text}"

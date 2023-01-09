@@ -417,18 +417,20 @@ def test_token_exchange_authenticator(
 @pytest.mark.nhsd_apim_authorization(access="application", level="level3")
 def test_trace(nhsd_apim_proxy_url, nhsd_apim_auth_headers, trace):
     session_name = "test_session"
-    trace.post_debugsession(session_name)
+    header_filters = {
+        "trace_id": "test_trace"
+    }
+    trace.post_debugsession(session=session_name, header_filters=header_filters)
 
     resp = requests.get(
-        nhsd_apim_proxy_url + "/test-auth/app/level3", headers=nhsd_apim_auth_headers
+        nhsd_apim_proxy_url + "/test-auth/app/level3", headers={
+            **header_filters,
+            **nhsd_apim_auth_headers
+        }
     )
     assert resp.status_code == 200
 
     trace_ids = trace.get_transaction_data(session_name=session_name)
-    if len(trace_ids) > 1:
-        raise Exception("More than one transaction found in trace")
-    if len(trace_ids) == 0:
-        raise Exception("No transactions found in trace")
 
     trace_data = trace.get_transaction_data_by_id(
         session_name=session_name, transaction_id=trace_ids[0]
