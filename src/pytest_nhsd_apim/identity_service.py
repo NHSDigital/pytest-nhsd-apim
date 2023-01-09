@@ -174,7 +174,7 @@ class NHSLoginConfig(AuthorizationCodeConfig):
     callback_url: HttpUrl = "https://nhsd-apim-testing-int-ns.herokuapp.com/nhslogin/callback"
     identity_service_base_url: HttpUrl
     jwt_private_key: str
-    jwt_kid
+    jwt_kid: str
     alg: str
     scope: Literal = "openid profile"
     authorize_code: str
