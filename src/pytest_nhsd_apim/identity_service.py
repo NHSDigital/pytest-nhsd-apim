@@ -76,7 +76,7 @@ class AuthorizationCodeConfig(BaseModel):
     identity_service_base_url: HttpUrl = _identity_service_base_url(environment)
     client_id: str
     client_secret: str
-    scope: Literal["nhs-login", "nhs-cis2"]
+    scope: Literal["nhs-login", "nhs-cis2", "openid profile"]
     login_form: dict
 
     @validator("environment")
@@ -176,7 +176,7 @@ class NHSLoginConfig(AuthorizationCodeConfig):
     jwt_private_key: str
     jwt_kid: str
     alg: str
-    scope: Literal = "openid profile"
+    scope: Literal["nhs-login", "nhs-cis2", "openid profile"] = "openid profile"
     authorize_code: str
 
     def encode_jwt(self):
