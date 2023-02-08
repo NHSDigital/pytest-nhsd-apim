@@ -11,7 +11,7 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 Authlib = "^0.15.5"
-cryptography = "^36.0.1"
+cryptography = ">=36.0.1,<40.0.0"
 lxml = "^4.7.1"
 python = "^3.8"
 pycryptodome = "^3.13.0"
