@@ -534,7 +534,7 @@ def _test_app_callback_url(_create_test_app):
 def _test_app_id(nhsd_apim_config):
     return nhsd_apim_config["APIGEE_APP_ID"]
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 @log_method
 def trace(_apigee_proxy):
     """
