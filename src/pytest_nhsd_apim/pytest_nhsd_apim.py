@@ -45,7 +45,10 @@ from .apigee_edge import (
     nhsd_apim_test_app,
     nhsd_apim_unsubscribe_test_app_from_all_products,
     test_app,
-    trace
+    trace,
+    products_api,
+    access_token_api,
+    developer_apps_api
 )
 from .auth_journey import (
     _jwt_keys,
