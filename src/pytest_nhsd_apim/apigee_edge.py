@@ -8,7 +8,7 @@ the test app.
 import functools
 import warnings
 from datetime import datetime
-from typing import Any, Callable, Dict, Literal
+from typing import Callable
 from uuid import uuid4
 
 import pytest
@@ -18,7 +18,10 @@ from .log import log, log_method
 from .apigee_apis import (
     ApigeeNonProdCredentials,
     ApigeeClient,
-    DebugSessionsAPI
+    DebugSessionsAPI,
+    AccessTokensAPI,
+    ApiProductsAPI,
+    DeveloperAppsAPI
 )
 
 APIGEE_BASE_URL = "https://api.enterprise.apigee.com/v1/"
@@ -531,7 +534,7 @@ def _test_app_callback_url(_create_test_app):
 def _test_app_id(nhsd_apim_config):
     return nhsd_apim_config["APIGEE_APP_ID"]
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 @log_method
 def trace(_apigee_proxy):
     """
@@ -546,3 +549,34 @@ def trace(_apigee_proxy):
         revision_number=_apigee_proxy["revision"]
     )
     return debug
+
+@pytest.fixture(scope="session")
+@log_method
+def access_token_api():
+    """
+    Authenitcated wrapper for Apigee's access token API
+    """
+    config = ApigeeNonProdCredentials()
+    client = ApigeeClient(config=config)
+    return AccessTokensAPI(client=client)
+
+
+@pytest.fixture(scope="session")
+@log_method
+def products_api():
+    """
+    Authenitcated wrapper for Apigee's products API
+    """
+    config = ApigeeNonProdCredentials()
+    client = ApigeeClient(config=config)
+    return ApiProductsAPI(client=client)
+
+@pytest.fixture(scope="session")
+@log_method
+def developer_apps_api():
+    """
+    Authenitcated wrapper for Apigee's developer apps API
+    """
+    config = ApigeeNonProdCredentials()
+    client = ApigeeClient(config=config)
+    return DeveloperAppsAPI(client=client)
