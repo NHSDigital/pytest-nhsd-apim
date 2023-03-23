@@ -40,7 +40,7 @@ class KeycloakConfig(BaseModel):
     def keycloak_url(self):
         prefix = "https://"
         host = "identity.ptl.api.platform.nhs.uk"
-        path = f"/auth/realms/{self.realm}/protocol/openid-connect"
+        path = f"/realms/{self.realm}/protocol/openid-connect"
         return f"{prefix}{host}{path}"
 
 
