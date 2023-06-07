@@ -1,9 +1,9 @@
 [tool.poetry]
 name = "pytest-nhsd-apim"
-version = "3.3.1"
+version = "3.3.2"
 description = "Pytest plugin accessing NHSDigital's APIM proxies"
-authors = ["Ben Strutt <ben.strutt1@nhs.net>", "Adrian Ciobanita <adrian.ciobanita1@nhs.net>", "Alex Carrie <alexander.carrie1@nhs.net>", "Lucas Fantini <lucas.fantini@nhs.net>"]
-maintainers = ["Ben Strutt <ben.strutt1@nhs.net>", "Alex Carrie <alexander.carrie1@nhs.net>"]
+authors = ["Adrian Ciobanita <adrian.ciobanita1@nhs.net>", "Alex Carrie <alexander.carrie1@nhs.net>", "Lucas Fantini <lucas.fantini@nhs.net>"]
+maintainers = ["Alex Carrie <alexander.carrie1@nhs.net>", "Alex Hawdon <alex.hawdon1@nhs.net"]
 readme = "README.md"
 repository = "https://github.com/NHSDigital/pytest-nhsd-apim"
 classifiers = ["Framework :: Pytest"]
