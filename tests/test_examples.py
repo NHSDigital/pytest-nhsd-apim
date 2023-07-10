@@ -6,6 +6,9 @@ These tests actually work!
 import json
 import pytest
 import requests
+
+from uuid import uuid4
+
 from pytest_nhsd_apim.identity_service import (
     ClientCredentialsConfig,
     ClientCredentialsAuthenticator,
@@ -207,6 +210,7 @@ def test_patient_access_level_with_parametrization(
 # username.
 MOCK_CIS2_USERNAMES = ["656005750104", "656005750105", "656005750106", "656005750107"]
 
+
 # You can make the parametrization less verbose by using a function to
 # construct each pytest.param!
 def cis2_aal3_mark(username: str):
@@ -308,7 +312,6 @@ def test_no_authorization_with_not_explicitly_marked(
 def test_client_credentials_authenticator(
     _test_app_credentials, _jwt_keys, apigee_environment
 ):
-
     # 1. Set your app config
     config = ClientCredentialsConfig(
         environment=apigee_environment,
@@ -336,7 +339,6 @@ def test_client_credentials_authenticator(
 
 
 def test_authorization_code_authenticator(_test_app_credentials, apigee_environment):
-
     # 1. Set your app config
     config = AuthorizationCodeConfig(
         environment=apigee_environment,
@@ -416,19 +418,17 @@ def test_token_exchange_authenticator(
 
 @pytest.mark.nhsd_apim_authorization(access="application", level="level3")
 def test_trace(nhsd_apim_proxy_url, nhsd_apim_auth_headers, trace):
-    session_name = "test_session"
-    trace.post_debugsession(session_name)
+    session_name = str(uuid4())
+    header_filters = {"trace_id": session_name}
+    trace.post_debugsession(session=session_name, header_filters=header_filters)
 
     resp = requests.get(
-        nhsd_apim_proxy_url + "/test-auth/app/level3", headers=nhsd_apim_auth_headers
+        nhsd_apim_proxy_url + "/test-auth/app/level3",
+        headers={**header_filters, **nhsd_apim_auth_headers},
     )
     assert resp.status_code == 200
 
     trace_ids = trace.get_transaction_data(session_name=session_name)
-    if len(trace_ids) > 1:
-        raise Exception("More than one transaction found in trace")
-    if len(trace_ids) == 0:
-        raise Exception("No transactions found in trace")
 
     trace_data = trace.get_transaction_data_by_id(
         session_name=session_name, transaction_id=trace_ids[0]

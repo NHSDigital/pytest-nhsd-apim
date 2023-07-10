@@ -40,7 +40,9 @@ class TestDeveloperAppsAPI:
             "scopes": [],
             "status": "approved",
         }
-        pprint.pprint(developer_apps.create_app(email="lucas.fantini@nhs.net", body=body))
+        pprint.pprint(
+            developer_apps.create_app(email="lucas.fantini@nhs.net", body=body)
+        )
 
     def test_post_app_by_name(self, client):
         developer_apps = DeveloperAppsAPI(client=client)
@@ -57,7 +59,11 @@ class TestDeveloperAppsAPI:
             "scopes": [],
             "status": "approved",
         }
-        pprint.pprint(developer_apps.post_app_by_name(email="lucas.fantini@nhs.net", body=body, app_name="myapp"))
+        pprint.pprint(
+            developer_apps.post_app_by_name(
+                email="lucas.fantini@nhs.net", body=body, app_name="myapp"
+            )
+        )
 
     def test_put_app_by_name(self, client):
         developer_apps = DeveloperAppsAPI(client=client)
@@ -74,7 +80,11 @@ class TestDeveloperAppsAPI:
             "scopes": [],
             "status": "approved",
         }
-        pprint.pprint(developer_apps.put_app_by_name(email="lucas.fantini@nhs.net", body=body, app_name="myapp"))
+        pprint.pprint(
+            developer_apps.put_app_by_name(
+                email="lucas.fantini@nhs.net", body=body, app_name="myapp"
+            )
+        )
 
     def test_list_apps(self, client):
         developer_apps = DeveloperAppsAPI(client=client)
@@ -82,11 +92,19 @@ class TestDeveloperAppsAPI:
 
     def test_get_app_by_name(self, client):
         developer_apps = DeveloperAppsAPI(client=client)
-        pprint.pprint(developer_apps.get_app_by_name(email="lucas.fantini@nhs.net", app_name="myapp"))
+        pprint.pprint(
+            developer_apps.get_app_by_name(
+                email="lucas.fantini@nhs.net", app_name="myapp"
+            )
+        )
 
     def test_get_app_attributes(self, client):
         developer_apps = DeveloperAppsAPI(client=client)
-        pprint.pprint(developer_apps.get_app_attributes(email="lucas.fantini@nhs.net", app_name="myapp"))
+        pprint.pprint(
+            developer_apps.get_app_attributes(
+                email="lucas.fantini@nhs.net", app_name="myapp"
+            )
+        )
 
     def test_post_app_attributes(self, client):
         body = {
@@ -96,13 +114,19 @@ class TestDeveloperAppsAPI:
             ]
         }
         developer_apps = DeveloperAppsAPI(client=client)
-        pprint.pprint(developer_apps.post_app_attributes(email="lucas.fantini@nhs.net", app_name="myapp", body=body))
+        pprint.pprint(
+            developer_apps.post_app_attributes(
+                email="lucas.fantini@nhs.net", app_name="myapp", body=body
+            )
+        )
 
     def test_get_app_attributes_by_name(self, client):
         developer_apps = DeveloperAppsAPI(client=client)
         pprint.pprint(
             developer_apps.get_app_attribute_by_name(
-                email="lucas.fantini@nhs.net", app_name="myapp", attribute_name="ADMIN_EMAIL"
+                email="lucas.fantini@nhs.net",
+                app_name="myapp",
+                attribute_name="ADMIN_EMAIL",
             )
         )
 
@@ -111,7 +135,10 @@ class TestDeveloperAppsAPI:
         developer_apps = DeveloperAppsAPI(client=client)
         pprint.pprint(
             developer_apps.post_app_attribute_by_name(
-                email="lucas.fantini@nhs.net", app_name="myapp", attribute_name="DisplayName", body=body
+                email="lucas.fantini@nhs.net",
+                app_name="myapp",
+                attribute_name="DisplayName",
+                body=body,
             )
         )
 
@@ -119,13 +146,19 @@ class TestDeveloperAppsAPI:
         developer_apps = DeveloperAppsAPI(client=client)
         pprint.pprint(
             developer_apps.delete_app_attribute_by_name(
-                email="lucas.fantini@nhs.net", app_name="myapp", attribute_name="DisplayName"
+                email="lucas.fantini@nhs.net",
+                app_name="myapp",
+                attribute_name="DisplayName",
             )
         )
 
     def test_delete_app_by_name(self, client):
         developer_apps = DeveloperAppsAPI(client=client)
-        pprint.pprint(developer_apps.delete_app_by_name(email="lucas.fantini@nhs.net", app_name="myapp"))
+        pprint.pprint(
+            developer_apps.delete_app_by_name(
+                email="lucas.fantini@nhs.net", app_name="myapp"
+            )
+        )
 
 
 class TestApiProductsAPI:
@@ -164,7 +197,9 @@ class TestApiProductsAPI:
             "proxies": ["mock-jwks-internal-dev"],
             "scopes": [],
         }
-        pprint.pprint(api_products.put_product_by_name(product_name="myapiproduct", body=body))
+        pprint.pprint(
+            api_products.put_product_by_name(product_name="myapiproduct", body=body)
+        )
 
     def test_get_product_attributes(self, client):
         api_products = ApiProductsAPI(client=client)
@@ -173,23 +208,35 @@ class TestApiProductsAPI:
     def test_post_product_attributest(self, client):
         api_products = ApiProductsAPI(client=client)
         body = {"attribute": [{"name": "access", "value": "private"}]}
-        pprint.pprint(api_products.post_product_attributest(product_name="myapiproduct", body=body))
+        pprint.pprint(
+            api_products.post_product_attributest(
+                product_name="myapiproduct", body=body
+            )
+        )
 
     def test_get_product_attribute_by_name(self, client):
         api_products = ApiProductsAPI(client=client)
-        pprint.pprint(api_products.get_product_attribute_by_name(product_name="myapiproduct", attribute_name="access"))
+        pprint.pprint(
+            api_products.get_product_attribute_by_name(
+                product_name="myapiproduct", attribute_name="access"
+            )
+        )
 
     def test_post_product_attribute_by_name(self, client):
         api_products = ApiProductsAPI(client=client)
         body = {"value": "new_value"}
         pprint.pprint(
-            api_products.post_product_attribute_by_name(product_name="myapiproduct", attribute_name="access", body=body)
+            api_products.post_product_attribute_by_name(
+                product_name="myapiproduct", attribute_name="access", body=body
+            )
         )
 
     def test_delete_product_attribute_by_name(self, client):
         api_products = ApiProductsAPI(client=client)
         pprint.pprint(
-            api_products.delete_product_attribute_by_name(product_name="myapiproduct", attribute_name="access")
+            api_products.delete_product_attribute_by_name(
+                product_name="myapiproduct", attribute_name="access"
+            )
         )
 
     def test_delete_product_by_name(self, client):
@@ -198,43 +245,49 @@ class TestApiProductsAPI:
 
 
 class TestDebugSessionAPI:
-    def test_get_debugsession(self, client):
+    def test_get_debugsession(self, client, _apigee_proxy):
         debugsession = DebugSessionsAPI(
-            client=client, env_name="internal-dev", api_name="mock-jwks-internal-dev", revision_number="17"
+            client=client,
+            env_name=_apigee_proxy["environment"],
+            api_name=_apigee_proxy["name"],
+            revision_number=_apigee_proxy["revision"],
         )
         pprint.pprint(debugsession.get_debugsessions())
 
-    def test_post_debugsession(self, client):
+    def test_post_debugsession(self, client, _apigee_proxy):
         debugsession = DebugSessionsAPI(
-            client=client, env_name="internal-dev", api_name="mock-jwks-internal-dev", revision_number="17"
+            client=client,
+            env_name=_apigee_proxy["environment"],
+            api_name=_apigee_proxy["name"],
+            revision_number=_apigee_proxy["revision"],
         )
-        body = "my_session"
-        pprint.pprint(debugsession.post_debugsession(body=body))
+        session = "my_session"
+        pprint.pprint(debugsession.post_debugsession(session=session))
 
-    def test_delete_debugsession_by_name(self, client):
+    def test_delete_debugsession_by_name(self, client, _apigee_proxy):
         debugsession = DebugSessionsAPI(
-            client=client, env_name="internal-dev", api_name="mock-jwks-internal-dev", revision_number="17"
+            client=client,
+            env_name=_apigee_proxy["environment"],
+            api_name=_apigee_proxy["name"],
+            revision_number=_apigee_proxy["revision"],
         )
 
-        pprint.pprint(debugsession.delete_debugsession_by_name(session_name="my_session"))
+        pprint.pprint(
+            debugsession.delete_debugsession_by_name(session_name="my_session")
+        )
 
-    def test_get_transaction_data(self, client):
+    def test_get_transaction_data(self, client, _apigee_proxy):
         debugsession = DebugSessionsAPI(
-            client=client, env_name="internal-dev", api_name="mock-jwks-internal-dev", revision_number="17"
+            client=client,
+            env_name=_apigee_proxy["environment"],
+            api_name=_apigee_proxy["name"],
+            revision_number=_apigee_proxy["revision"],
         )
-        debugsession.post_debugsession(body="my_session")
+        debugsession.post_debugsession(session="my_session")
         pprint.pprint(debugsession.get_transaction_data(session_name="my_session"))
         debugsession.delete_debugsession_by_name(session_name="my_session")
 
-    def test_get_transaction_data_by_id(self, client):
-        # TODO: Need to actually make a request to the proxy to get the transaction_id
-        # debugsession = DebugSessionsAPI(
-        #     client=client, env_name="internal-dev", api_name="mock-jwks-internal-dev", revision_number="17"
-        # )
-        # debugsession.post_debugsession(body="my_session")
-        # pprint.pprint(debugsession.get_transaction_data_by_id(session_name="my_session", transaction_id="1"))
-        # debugsession.delete_debugsession_by_name(session_name="my_session")
-        pass
+    # get_transaction_data_by_id functionality needs a real test and is tested as part of test_trace in test_examples.py
 
 
 class TestAccessTokenAPI:
@@ -254,7 +307,9 @@ class TestAccessTokenAPI:
         token_api = AccessTokensAPI(client=client)
         body = {
             "scope": "my-malicious-scope",
-            "attributes": [{"name": "my-malicious-name", "value": "my-malicious-value"}],
+            "attributes": [
+                {"name": "my-malicious-name", "value": "my-malicious-value"}
+            ],
         }  # scary...
         pprint.pprint(token_api.post_token_details(access_token=token, body=body))
 
@@ -265,4 +320,3 @@ class TestAccessTokenAPI:
         # 2. Delete it
         token_api = AccessTokensAPI(client=client)
         pprint.pprint(token_api.delete_token(access_token=token))
-
