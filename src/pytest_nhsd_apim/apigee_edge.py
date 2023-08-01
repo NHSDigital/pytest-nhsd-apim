@@ -62,7 +62,7 @@ def _get_proxy_json(session, nhsd_apim_proxy_url):
     """
     deployment_err_msg = (
         "\n\tFailed to retrieve the proxy deployment data. " +
-        "Please check the validity of the APIGEE_ACCESS_TOKEN and APIGEE credentials"
+        "Please check the validity of the APIGEE credentials and token as well as any headers."
     )
     deployment_resp = session.get(f"{nhsd_apim_proxy_url}/deployments")
     assert deployment_resp.status_code == 200, deployment_err_msg.format(deployment_resp.content)
