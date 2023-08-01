@@ -60,8 +60,11 @@ def _get_proxy_json(session, nhsd_apim_proxy_url):
     """
     Query the apigee edge API to get data about the desired proxy, in particular its current deployment.
     """
-    deployment_err_msg = "\n\tInvalid Access Token: Ensure APIGEE_ACCESS_TOKEN is valid."
-    deployment_resp = session.get(nhsd_apim_proxy_url + "/deployments")
+    deployment_err_msg = (
+        "\n\tFailed to retrieve the proxy deployment data. " +
+        "Please check the validity of the APIGEE_ACCESS_TOKEN and APIGEE credentials"
+    )
+    deployment_resp = session.get(f"{nhsd_apim_proxy_url}/deployments")
     assert deployment_resp.status_code == 200, deployment_err_msg.format(deployment_resp.content)
     deployment_json = deployment_resp.json()
 
