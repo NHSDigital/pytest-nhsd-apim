@@ -26,14 +26,22 @@ class KeycloakConfig(BaseModel):
 
     realm: Literal[
         "Cis2-mock-internal-dev",
+        "Cis2-mock-internal-dev-sandbox",
         "Cis2-mock-internal-qa",
+        "Cis2-mock-internal-qa-sandbox",
+        "Cis2-mock-ref",
+        "Cis2-mock-dev",
         "Cis2-mock-sandbox",
         "Cis2-mock-int",
         "NHS-Login-mock-internal-dev",
+        "NHS-Login-mock-internal-dev-sandbox",
         "NHS-Login-mock-internal-qa",
+        "NHS-Login-mock-internal-qa-sandbox",
+        "NHS-Login-mock-ref",
+        "NHS-Login-mock-dev",
         "NHS-Login-mock-sandbox",
         "NHS-Login-mock-int",
-        "Api-producers",  # just in case u want to get a cheeky token for proxygen ;)
+        "api-producers",  # just in case u want to get a cheeky token for proxygen ;)
     ]
 
     @property
@@ -57,7 +65,7 @@ class AuthorizationCodeConfig(BaseModel):
     def _identity_service_base_url(env):
         prefix = "https://"
         host = "api.service.nhs.uk"
-        path = "/oauth2-mock"  # lets just support mock auth v2...
+        path = "/oauth2-mock"
         if env != "prod":
             prefix += f"{env}."
         return f"{prefix}{host}{path}"
@@ -68,6 +76,8 @@ class AuthorizationCodeConfig(BaseModel):
         "internal-dev-sandbox",
         "internal-qa-sandbox",
         "ref",
+        "sandbox",
+        "dev",
         "int",
         "prod",
     ] = "internal-dev"
@@ -80,23 +90,10 @@ class AuthorizationCodeConfig(BaseModel):
     login_form: dict
 
     @validator("environment")
-    # The dream is to suport all the auth methods in all the environments
-    # however this is only true for client_credentials at the time of writing
-    # this library, we dont have at the moment a complete map between identity
-    # service deployment environments and keycloak realms so authorization_code
-    # and token_exchange are only supported in internal-dev, internal-qa and
-    # int. We use validators to handle this and when the moment comes we can
-    # just delete them.
     def validate_environment(cls, environment):
-        if environment in [
-            "internal-dev-sandbox",
-            "internal-qa-sandbox",
-            "sandbox",
-            "ref",
-            "prod",
-        ]:
+        if environment == "prod":
             raise ValueError(
-                f"This is awkward.. we dont support auth_code flow for the {environment} just yet"
+                f"We dont support testing in the production environment"
             )
         return environment
 
@@ -118,6 +115,8 @@ class ClientCredentialsConfig(BaseModel):
         "internal-dev-sandbox",
         "internal-qa-sandbox",
         "ref",
+        "dev",
+        "sandbox",
         "int",
         "prod",
     ] = "internal-dev"
