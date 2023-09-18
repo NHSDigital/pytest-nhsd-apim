@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytest-nhsd-apim"
-version = "3.3.8"
+version = "3.3.9"
 description = "Pytest plugin accessing NHSDigital's APIM proxies"
 authors = ["Adrian Ciobanita <adrian.ciobanita1@nhs.net>", "Alex Carrie <alexander.carrie1@nhs.net>", "Lucas Fantini <lucas.fantini@nhs.net>"]
 maintainers = ["Alex Carrie <alexander.carrie1@nhs.net>", "Alex Hawdon <alex.hawdon1@nhs.net"]
@@ -15,10 +15,10 @@ cryptography = ">=36.0.1,<42.0.0"
 lxml = "^4.9.1"
 python = "^3.8"
 pycryptodome = "^3.13.0"
-PyJWT = "^2.3.0"
+PyJWT = "^2.8.0"
 pyotp = "^2.6.0"
 pytest = "^6.2.5"
-requests = "^2.27.1"
+requests = "^2.31.0"
 toml = "^0.10.2"
 typing-extensions = "^4.3.0"
 pydantic = "^1.9.1"
