@@ -29,5 +29,8 @@ jobs:
       - name: check build
         run: twine check dist/*
 
+      - name: set poetry credentials
+        run: poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
+
       - name: publish
-        run: twine upload dist/* -u ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }} --non-interactive
+        run: poetry publish
