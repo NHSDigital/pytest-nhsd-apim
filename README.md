@@ -1,6 +1,6 @@
 # pytest-nhsd-apim
 
-A pytest extension for NHSDigital's API Mangement suite.
+A pytest extension for NHSDigital's API Management suite.
 
 ## Installation
 In your project's virtual environment
