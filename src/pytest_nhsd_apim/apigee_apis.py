@@ -39,7 +39,7 @@ class ApigeeProdCredentials(BaseSettings):
     apigee_nhsd_prod_passcode: Optional[str] = None
     apigee_access_token: Optional[str] = None
 
-    @root_validator(pre=True)
+    @root_validator
     def check_credentials_config(cls, values):
         print(values)
         """Checks for the right set of credentials"""
@@ -60,7 +60,7 @@ class ApigeeProdCredentials(BaseSettings):
         ):
             values["auth_method"] = "saml"
             return values
-        elif values["access_token"]:
+        elif values["apigee_access_token"]:
             values["auth_method"] = "access_token"
             return values
         else:
