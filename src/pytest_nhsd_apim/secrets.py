@@ -22,12 +22,23 @@ _SESSION = requests.session()
 
 @pytest.fixture()
 @log_method
-def _mock_jwks_api_key(_apigee_app_base_url, _apigee_edge_session, test_app, apigee_environment, _test_app_id):
+def _mock_jwks_api_key(
+    _apigee_app_base_url,
+    _apigee_edge_session,
+    test_app,
+    apigee_environment,
+    _test_app_id,
+):
     # Apps in prod Apigee shouldn't rely on mock-jwks for their api key
-    if apigee_environment in ["int", "prod"]: return ""
+    if apigee_environment in ["dev", "sandbox", "int", "prod"]:
+        return ""
 
     creds = get_app_credentials_for_product(
-        _apigee_app_base_url, _apigee_edge_session, test_app(), f"mock-jwks-{apigee_environment}", _test_app_id
+        _apigee_app_base_url,
+        _apigee_edge_session,
+        test_app(),
+        f"mock-jwks-{apigee_environment}",
+        _test_app_id,
     )
     return creds["consumerKey"]
 
