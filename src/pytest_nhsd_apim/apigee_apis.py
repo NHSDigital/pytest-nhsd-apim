@@ -5,7 +5,8 @@ import jwt
 import pyotp
 import requests
 from jwt import ExpiredSignatureError
-from pydantic import BaseSettings, root_validator
+from pydantic import model_validator
+from pydantic_settings import BaseSettings
 
 
 class ApigeeProdCredentials(BaseSettings):
@@ -38,30 +39,28 @@ class ApigeeProdCredentials(BaseSettings):
     apigee_nhsd_prod_password: Optional[str] = None
     apigee_nhsd_prod_passcode: Optional[str] = None
     apigee_access_token: Optional[str] = None
+    auth_method: Optional[str] = None
 
-    @root_validator(pre=True)
+    @model_validator(mode='before')
     def check_credentials_config(cls, values):
         print(values)
         """Checks for the right set of credentials"""
         if all(
             [
-                values.get(key)
-                for key in [
-                    "apigee_nhsd_prod_username",
-                    "apigee_nhsd_prod_password",
-                    "auth_server",
-                ]
+                values.apigee_nhsd_prod_username,
+                values.apigee_nhsd_prod_password,
+                values.auth_server,
             ]
         ):
-            values["auth_method"] = "saml"
+            values.auth_method = "saml"
             return values
         elif all(
-            [values.get(key) for key in ["auth_server", "apigee_nhsd_prod_passcode"]]
+            [values.auth_server, values.apigee_nhsd_prod_passcode]
         ):
-            values["auth_method"] = "saml"
+            values.auth_method = "saml"
             return values
-        elif values["access_token"]:
-            values["auth_method"] = "access_token"
+        elif values.access_token:
+            values.auth_method = "access_token"
             return values
         else:
             raise ValueError(
@@ -105,36 +104,31 @@ class ApigeeNonProdCredentials(BaseSettings):
     apigee_nhsd_nonprod_password: Optional[str]
     apigee_nhsd_nonprod_otp_key: Optional[str]
     apigee_access_token: Optional[str]
+    auth_method: Optional[str] = None
 
-    @root_validator
+    @model_validator(mode='after')
     def check_credentials_config(cls, values):
         """Checks for the right set of credentials"""
         if all(
             [
-                values.get(key)
-                for key in [
-                    "apigee_nhsd_nonprod_username",
-                    "apigee_nhsd_nonprod_password",
-                    "apigee_nhsd_nonprod_otp_key",
-                ]
+                values.apigee_nhsd_nonprod_username,
+                values.apigee_nhsd_nonprod_password,
+                values.apigee_nhsd_nonprod_otp_key,
             ]
         ):
-            values["auth_method"] = "saml"
+            values.auth_method = "saml"
             return values
         elif all(
             [
-                values.get(key)
-                for key in [
-                    "auth_server",
-                    "apigee_nhsd_nonprod_password",
-                    "apigee_nhsd_nonprod_username",
-                ]
+                values.auth_server,
+                values.apigee_nhsd_nonprod_password,
+                values.apigee_nhsd_nonprod_username,
             ]
         ):
-            values["auth_method"] = "saml"
+            values.auth_method = "saml"
             return values
-        elif values["apigee_access_token"]:
-            values["auth_method"] = "access_token"
+        elif values.apigee_access_token:
+            values.auth_method = "access_token"
             return values
         else:
             raise ValueError("Please provide valid credentials or apigee_access_token")
