@@ -13,7 +13,7 @@ build-install: # also installs it locally
 clean:
 	@rm -rf build dist
 
-# To prove that the library works against diferent environments we run the same
+# To prove that the library works against different environments we run the same
 # tests against two different deployments of the mock-jwks proxy
 test_proxies = mock-jwks-internal-qa mock-jwks-internal-dev 
 test:
