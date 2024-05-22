@@ -41,7 +41,7 @@ class ApigeeProdCredentials(BaseSettings):
     apigee_access_token: Optional[str] = None
     auth_method: Optional[str] = None
 
-    @model_validator
+    @model_validator(mode='before')
     def check_credentials_config(cls, values):
         print(values)
         """Checks for the right set of credentials"""
@@ -106,7 +106,7 @@ class ApigeeNonProdCredentials(BaseSettings):
     apigee_access_token: Optional[str]
     auth_method: Optional[str] = None
 
-    @model_validator
+    @model_validator(mode='after')
     def check_credentials_config(cls, values):
         """Checks for the right set of credentials"""
         if all(
