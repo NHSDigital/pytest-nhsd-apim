@@ -11,7 +11,7 @@ from time import time
 from typing import Literal
 
 import jwt
-from pydantic import BaseModel, HttpUrl, validator
+from pydantic import field_validator, BaseModel, HttpUrl
 from abc import ABC, abstractmethod
 from typing import Literal
 from urllib.parse import parse_qs, urlparse
@@ -89,7 +89,8 @@ class AuthorizationCodeConfig(BaseModel):
     scope: Literal["nhs-login", "nhs-cis2"]
     login_form: dict
 
-    @validator("environment")
+    @field_validator("environment")
+    @classmethod
     def validate_environment(cls, environment):
         if environment == "prod":
             raise ValueError(

@@ -23,6 +23,9 @@ toml = "^0.10.2"
 typing-extensions = "^4.6.1"
 pydantic = "^2.7.1"
 wheel = ">=0.37.1,<0.39.0"
+setuptools = "^70.0.0"
+pydantic-settings = "^2.2.1"
+bump-pydantic = "^0.8.0"
 
 
 [tool.poetry.dev-dependencies]

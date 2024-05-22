@@ -5,7 +5,8 @@ import jwt
 import pyotp
 import requests
 from jwt import ExpiredSignatureError
-from pydantic import BaseSettings, root_validator
+from pydantic import model_validator
+from pydantic_settings import BaseSettings
 
 
 class ApigeeProdCredentials(BaseSettings):
@@ -39,7 +40,7 @@ class ApigeeProdCredentials(BaseSettings):
     apigee_nhsd_prod_passcode: Optional[str] = None
     apigee_access_token: Optional[str] = None
 
-    @root_validator
+    @model_validator(mode='before')
     def check_credentials_config(cls, values):
         print(values)
         """Checks for the right set of credentials"""
@@ -106,7 +107,7 @@ class ApigeeNonProdCredentials(BaseSettings):
     apigee_nhsd_nonprod_otp_key: Optional[str]
     apigee_access_token: Optional[str]
 
-    @root_validator
+    @model_validator(mode='before')
     def check_credentials_config(cls, values):
         """Checks for the right set of credentials"""
         if all(

@@ -28,7 +28,7 @@ python -m pytest -p pytest_nhsd_apim test_nhsd_apim.py -s --apigee-proxy-name=<y
 
 ## Available tools
 When installing this library in your project you can access some very handy tools, including our platform authenticators and our apigee api wrapper library.
-### Autheticators
+### Authenticators
 We present a variety of authenticators including AuthorizationCodeAuthenticator, ClientCredentialsAuthenticator and TokenExchangeAuthenticator. The way of using them is simple. First you create the configuration object which will validate that your coniguration is correct on creation using pydantic, then pass the config to the authenticator and call get_token() on it.
 ```python
     from pytest_nhsd_apim.identity_service import ClientCredentialsConfig, ClientCredentialsAuthenticator
