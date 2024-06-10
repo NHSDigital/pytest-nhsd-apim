@@ -1,6 +1,6 @@
 """
-The order in wich this tests are ran is important since resources are going to
-be created byt the tests in Apigee. A better way writing the tests would be to
+The order in which this tests are ran is important since resources are going to
+be created by the tests in Apigee. A better way writing of the tests would be to
 create a fixture that manages the creation and tear down of the relevant apps in
 every tests but im a bit tired now...
 """
@@ -13,6 +13,7 @@ from pytest_nhsd_apim.apigee_apis import (
     ApigeeClient,
     ApigeeNonProdCredentials,
     ApiProductsAPI,
+    AppKeysAPI,
     DebugSessionsAPI,
     DeveloperAppsAPI,
 )
@@ -320,3 +321,158 @@ class TestAccessTokenAPI:
         # 2. Delete it
         token_api = AccessTokensAPI(client=client)
         pprint.pprint(token_api.delete_token(access_token=token))
+
+
+class TestAppKeysAPI:
+    def test_create_app(self, client):
+        developer_apps = DeveloperAppsAPI(client=client)
+        body = {
+            "apiProducts": [],
+            "attributes": [
+                {"name": "ADMIN_EMAIL", "value": "lucas.fantini@nhs.net"},
+                {"name": "DisplayName", "value": "My App"},
+                {"name": "Notes", "value": "Notes for developer app"},
+                {"name": "MINT_BILLING_TYPE", "value": "POSTPAID"},
+            ],
+            "callbackUrl": "example.com",
+            "name": "myapp",
+            "scopes": [],
+            "status": "approved",
+        }
+        pprint.pprint(
+            developer_apps.create_app(email="lucas.fantini@nhs.net", body=body)
+        )
+
+    def test_post_apiproducts(self, client):
+        api_products = ApiProductsAPI(client=client)
+        body = {
+            "apiResources": ["/"],
+            "approvalType": "auto",
+            "attributes": [{"name": "access", "value": "public"}],
+            "description": "My API product",
+            "displayName": "My API product",
+            "environments": ["internal-dev"],
+            "name": "myapiproduct",
+            "proxies": ["identity-service-internal-dev"],
+            "scopes": ["scope1"],
+        }
+        pprint.pprint(api_products.post_products(body=body))
+
+    def test_create_app_key(self, client):
+        app_keys = AppKeysAPI(client=client)
+        pprint.pprint(
+            app_keys.create_app_key(
+              "lucas.fantini@nhs.net",
+              "myapp",
+              {
+                  "consumerKey": "RW3HpQ2oEGT8smAB",
+                  "consumerSecret": "J0BUbo8Scy6M90qL"
+              }
+            )
+        )
+
+    def test_get_app_key(self, client):
+        app_keys = AppKeysAPI(client=client)
+        pprint.pprint(
+            app_keys.get_app_key(
+                "lucas.fantini@nhs.net",
+                "myapp",
+                "RW3HpQ2oEGT8smAB"
+            )
+        )
+
+    def test_post_app_key(self, client):
+        app_keys = AppKeysAPI(client=client)
+        body = {
+            "apiProducts": ["myapiproduct"]
+        }
+        pprint.pprint(
+            app_keys.post_app_key(
+                "lucas.fantini@nhs.net",
+                "myapp",
+                "RW3HpQ2oEGT8smAB",
+                body
+            )
+        )
+
+    def test_put_app_key(self, client):
+        app_keys = AppKeysAPI(client=client)
+        body = {
+            "scopes": [
+                "scope1"
+            ]
+        }
+        pprint.pprint(
+            app_keys.put_app_key(
+                "lucas.fantini@nhs.net",
+                "myapp",
+                "RW3HpQ2oEGT8smAB",
+                body
+              )
+        )
+
+    def test_post_product_app_key_association(self, client):
+        app_keys = AppKeysAPI(client=client)
+        pprint.pprint(
+            app_keys.post_product_app_key_association(
+                "lucas.fantini@nhs.net",
+                "myapp",
+                "RW3HpQ2oEGT8smAB",
+                "myapiproduct",
+                action="revoke"
+            )
+        )
+        pprint.pprint(
+            app_keys.get_app_key(
+                "lucas.fantini@nhs.net",
+                "myapp",
+                "RW3HpQ2oEGT8smAB"
+            )
+        )
+
+    def test_post_app_key_params(self, client):
+        app_keys = AppKeysAPI(client=client)
+        pprint.pprint(
+            app_keys.post_app_key(
+                email="lucas.fantini@nhs.net",
+                app_name="myapp",
+                key="RW3HpQ2oEGT8smAB",
+                body=None,
+                action="revoke"
+            )
+        )
+        pprint.pprint(
+            app_keys.get_app_key(
+                "lucas.fantini@nhs.net",
+                "myapp",
+                "RW3HpQ2oEGT8smAB"
+            )
+        )
+
+    def test_delete_product_app_key_association(self, client):
+        app_keys = AppKeysAPI(client=client)
+        pprint.pprint(
+            app_keys.delete_product_app_key_association(
+                email="lucas.fantini@nhs.net",
+                app_name="myapp",
+                app_key="RW3HpQ2oEGT8smAB",
+                apiproduct_name="myapiproduct"
+            )
+        )
+
+    def test_delete_product_by_name(self, client):
+        api_products = ApiProductsAPI(client=client)
+        pprint.pprint(
+            api_products.delete_product_by_name(
+                product_name="myapiproduct"
+            )
+        )
+
+    def test_delete_app_by_name(self, client):
+        developer_apps = DeveloperAppsAPI(client=client)
+        pprint.pprint(
+            developer_apps.delete_app_by_name(
+                email="lucas.fantini@nhs.net",
+                app_name="myapp"
+            )
+        )

@@ -48,7 +48,8 @@ from .apigee_edge import (
     trace,
     products_api,
     access_token_api,
-    developer_apps_api
+    developer_apps_api,
+    developer_app_keys_api
 )
 from .auth_journey import (
     _jwt_keys,

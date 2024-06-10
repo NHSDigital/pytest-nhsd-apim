@@ -18,6 +18,7 @@ from .log import log, log_method
 from .apigee_apis import (
     ApigeeNonProdCredentials,
     ApigeeClient,
+    AppKeysAPI,
     DebugSessionsAPI,
     AccessTokensAPI,
     ApiProductsAPI,
@@ -583,3 +584,13 @@ def developer_apps_api():
     config = ApigeeNonProdCredentials()
     client = ApigeeClient(config=config)
     return DeveloperAppsAPI(client=client)
+
+@pytest.fixture(scope="session")
+@log_method
+def developer_app_keys_api():
+    """
+    Authenitcated wrapper for Apigee's developer app keys API
+    """
+    config = ApigeeNonProdCredentials()
+    client = ApigeeClient(config=config)
+    return AppKeysAPI(client=client)
