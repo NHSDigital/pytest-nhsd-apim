@@ -10,7 +10,7 @@ classifiers = ["Framework :: Pytest"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-Authlib = "^0.15.5"
+Authlib = ">=0.15.5,<1.4.0"
 cryptography = ">42.0.0"
 lxml = "^4.9.1"
 python = "^3.8"
