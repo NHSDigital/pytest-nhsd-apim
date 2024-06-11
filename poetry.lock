@@ -304,23 +304,6 @@ files = [
 ]
 
 [[package]]
-name = "joserfc"
-version = "0.10.0"
-description = "The ultimate Python library for JOSE RFCs, including JWS, JWE, JWK, JWA, JWT"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "joserfc-0.10.0-py3-none-any.whl", hash = "sha256:1b39bd9078d7f0087bfe694f96c9723c7a2fd63e5974f5efd805016319f2f50d"},
-    {file = "joserfc-0.10.0.tar.gz", hash = "sha256:d1c16ff2179145e248fd67dbaa47bb5a3855f8754c64902dd09e2775e63bcd63"},
-]
-
-[package.dependencies]
-cryptography = "*"
-
-[package.extras]
-drafts = ["pycryptodome"]
-
-[[package]]
 name = "lxml"
 version = "5.2.2"
 description = "Powerful and Pythonic XML processing library combining libxml2/libxslt with the ElementTree API."
@@ -820,19 +803,19 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "wheel"
-version = "0.43.0"
+version = "0.38.4"
 description = "A built-package format for Python"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.7"
 files = [
-    {file = "wheel-0.43.0-py3-none-any.whl", hash = "sha256:55c570405f142630c6b9f72fe09d9b67cf1477fcf543ae5b8dcb1f5b7377da81"},
-    {file = "wheel-0.43.0.tar.gz", hash = "sha256:465ef92c69fa5c5da2d1cf8ac40559a8c940886afcef87dcf14b9470862f1d85"},
+    {file = "wheel-0.38.4-py3-none-any.whl", hash = "sha256:b60533f3f5d530e971d6737ca6d58681ee434818fab630c83a734bb10c083ce8"},
+    {file = "wheel-0.38.4.tar.gz", hash = "sha256:965f5259b566725405b05e7cf774052044b1ed30119b5d586b2703aafe8719ac"},
 ]
 
 [package.extras]
-test = ["pytest (>=6.0.0)", "setuptools (>=65)"]
+test = ["pytest (>=3.0.0)"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "c69c04a0e3bfbb292b1580524913b8e49ab89b505b9bda40099dbb3919acaf76"
+content-hash = "0ec233e155f7576a831118c606fc75fabefb459480ae129d70392a18c7b1a5ea"
