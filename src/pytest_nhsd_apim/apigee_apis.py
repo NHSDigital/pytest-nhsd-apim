@@ -470,7 +470,7 @@ class DeveloperAppsAPI:
         resp = self.client.delete(url=url)
         if resp.status_code != 200:
             raise Exception(
-                f"GET request to {resp.url} failed with status_code: {resp.status_code}, Reason: {resp.reason} and Content: {resp.text}"
+                f"DELETE request to {resp.url} failed with status_code: {resp.status_code}, Reason: {resp.reason} and Content: {resp.text}"
             )
         return resp.json()
 
@@ -1235,11 +1235,218 @@ class UserRolesAPI:
 
 
 class AppKeysAPI:
+    """
+    Manage consumer credentials for apps associated with individual developers.
+
+    Credential pairs consisting of consumer key and consumer secret are provisioned
+    by Apigee Edge to apps for specific API products. Apigee Edge maintains the
+    relationship between consumer keys and API products, enabling API products to be
+    added to and removed from consumer keys. A single consumer key can be used to
+    access multiple API products. Keys may be manually or automatically approved for
+    API products--how they are issued depends on the API product configuration. A key
+    must approved and approved for an API product to be capable of accessing any of
+    the URIs defined in the API product.
+    """
+
     def __init__(self, client: RestClient) -> None:
         self.client = client
-        raise NotImplementedError(
-            f"Ugh! this is awkward, this API is not available yet...feel free to give us a shout or to open a PR https://github.com/NHSDigital/pytest-nhsd-apim/blob/0cf274850a8fe61e17f214380496ba09fd6cc973/src/pytest_nhsd_apim/apigee_apis.py#L1142"
-        )
+
+    def create_app_key(self, email: str, app_name: str, body: dict) -> "dict":
+        """
+        Creates a custom consumer key and secret for a developer app.
+        This is particularly useful if you want to migrate existing consumer
+        keys/secrets to Edge from another system.
+
+        After creating the consumer key and secret, associate the key with an
+        API product, as described in Add API Product to Key.
+
+        Consumer keys and secrets can contain letters, numbers, underscores,
+        and hyphens. No other special characters are allowed.
+
+        Note: Be aware of the following size limits on API keys. By staying
+        within these limits, you help avoid service disruptions.
+
+        - Consumer key (API key) size: 2 KB
+
+        - Consumer secret size: 2 KB
+
+        If a consumer key and secret already exist, you can either keep them
+        or delete them, as described in Delete Key for a Developer App.
+
+        In addition, you can use this API if you have existing API keys and
+        secrets that you want to copy into Edge from another system. For more
+        information, see Import existing consumer keys and secrets.
+        """
+
+        resource = f"/developers/{email}/apps/{app_name}/keys/create"
+        url = f"{self.client.base_url}{resource}"
+        resp = self.client.post(url=url, json=body)
+        if resp.status_code != 201:
+            raise Exception(
+                f"POST request to {resp.url} failed with status_code: {resp.status_code}, Reason: {resp.reason} and Content: {resp.text}"
+            )
+        return resp.json()
+    
+    def delete_app_key(self, email: str, app_name: str, app_key: str) -> None:
+        """
+        Deletes a consumer key that belongs to an app, and removes all API products
+        associated with the app. Once deleted, the consumer key cannot be used
+        to access any APIs.
+
+        After you delete a consumer key, you may want to:
+
+        - Create a new consumer key and secret for the developer app, and
+          subsequently add an API product to the key.
+
+        - Delete the developer app, if it is no longer required.
+        """
+
+        resource = f"/developers/{email}/apps/{app_name}/keys/{app_key}"
+        url = f"{self.client.base_url}{resource}"
+        resp = self.client.delete(url=url)
+        if resp.status_code != 200:
+            raise Exception(
+                f"DELETE request to {resp.url} failed with status_code: {resp.status_code}, Reason: {resp.reason} and Content: {resp.text}"
+            )
+        return resp.json()
+    
+    def get_app_key(self, email: str, app_name: str, key: str, **query_params) -> "list[str]":
+        """
+        Gets details for a consumer key for a developer app, including the key
+        and secret value, associated API products, and other information.
+        """
+
+        params = query_params
+        resource = f"/developers/{email}/apps/{app_name}/keys/{key}"
+        url = f"{self.client.base_url}{resource}"
+        resp = self.client.get(url=url, params=params)
+        if resp.status_code != 200:
+            raise Exception(
+                f"GET request to {resp.url} failed with status_code: {resp.status_code}, Reason: {resp.reason} and Content: {resp.text}"
+            )
+        return resp.json()
+
+    def post_app_key(self, email: str, app_name: str, key: str, body: dict, **query_params) -> "dict":
+        """
+        Enables you to perform one of the following tasks:
+
+        - Add an API product to a developer app key, enabling the app that holds
+          the key to access the API resources bundled in the API product. You can
+          also use this API to add attributes to the key. You must include all existing
+          attributes, whether or not you are updating them, as well as any new attributes
+          that you are adding. After adding the API product, you can use the same key
+          to access all API products associated with the app.
+
+        - Approve or revoke a specific consumer key for an app. Call the API with the
+          action query parameter set to approve or revoke (with no request body) and
+          set the Content-type header to application/octet-stream. If successful, the HTTP
+          status code for success is: 204 No Content
+
+        - You can approve a consumer key that is currently revoked or pending. Once
+          approved, the app can use the consumer key to access APIs. Revoking a consumer
+          key renders it unusable for the app to use to access an API.
+
+        - Note: Any access tokens associated with a revoked app key will remain active.
+          However, Apigee Edge checks the status of the app key and if set to revoked it
+          will not allow API calls to go through.
+        """
+
+        resource = f"/developers/{email}/apps/{app_name}/keys/{key}"
+        url = f"{self.client.base_url}{resource}"
+        resp = self.client.post(url=url, json=body, params=query_params)
+        if resp.status_code != 200 and resp.status_code != 204:
+            raise Exception(
+                f"POST request to {resp.url} failed with status_code: {resp.status_code}, Reason: {resp.reason} and Content: {resp.text}"
+            )
+        if resp.status_code == 204:
+            return resp
+        else:
+            return resp.json()
+
+    def put_app_key(self, email: str, app_name: str, key: str, body: dict) -> "dict":
+        """
+        Updates the allowed OAuth scopes associated with an app.
+
+        Note: Specify the complete list of scopes to apply. The specified list replaces
+        the existing scopes on the app. Therefore, to add a scope, you must specify all
+        of the existing scopes along with the added scope.
+
+        This API does not change the list of scopes in the API product(s) included in
+        the app; rather, it sets allowed list of scopes in the scopes element under the
+        apiProducts element in the attributes of the app.
+
+        Important: The specified scopes must already exist on the API product(s)
+        associated with the app. You can't arbitrarily add a scope that does not already
+        exist in an API product. For example, if the app has one API product with these
+        scopes: READ, WRITE. You can't use this API to add a new scope, such as DELETE
+        (unless the app has another product with that scope). If you do this, you'll get
+        a 400 Bad Request error. For example:
+
+        {
+          "code": "keymanagement.service.InvalidScopes",
+          "message": "Invalid scopes. Scopes must be contained in [READ, WRITE]",
+          "contexts": []
+
+        }
+
+        It would be allowed to remove one or both of the existing scopes, and later add
+        one or both back.
+        """
+
+        resource = f"/developers/{email}/apps/{app_name}/keys/{key}"
+        url = f"{self.client.base_url}{resource}"
+        resp = self.client.put(url=url, json=body)
+        if resp.status_code != 200:
+            raise Exception(
+                f"PUT request to {resp.url} failed with status_code: {resp.status_code}, Reason: {resp.reason} and Content: {resp.text}"
+            )
+        return resp.json()
+    
+    def delete_product_app_key_association(self, email: str, app_name: str, app_key: str, apiproduct_name: str) -> None:
+        """
+        Removes an API product from an app's consumer key, and thereby renders the app
+        unable to access the API resources defined in that API product.
+
+        Note that the consumer key itself still exists after this call. Only the
+        association of the key with the API product is removed.
+        """
+
+        resource = f"/developers/{email}/apps/{app_name}/keys/{app_key}/apiproducts/{apiproduct_name}"
+        url = f"{self.client.base_url}{resource}"
+        resp = self.client.delete(url=url)
+        if resp.status_code != 200:
+            raise Exception(
+                f"DELETE request to {resp.url} failed with status_code: {resp.status_code}, Reason: {resp.reason} and Content: {resp.text}"
+            )
+        return resp.json()
+
+    def post_product_app_key_association(self, email: str, app_name: str, key: str, apiproduct_name: str, **query_params) -> "dict":
+        """
+        Approves or revokes an API product for an API key. Call the API with the action
+        query parameter set to approve or revoke (with no request body) and set the
+        Content-type header to application/octet-stream. If successful, the HTTP status
+        code for success is: 204 No Content
+
+        To consume API resources defined in an API product, an app's consumer key must
+        be approved and it must also be approved for that specific API product.
+
+        Notes:
+
+        - The API product must already be associated with the app.
+
+        - Any access tokens associated with a revoked app key will remain active. However,
+          Apigee Edge checks the status of the app key and if set to revoked it will not
+          allow API calls to go through.
+        """
+
+        resource = f"/developers/{email}/apps/{app_name}/keys/{key}/apiproducts/{apiproduct_name}"
+        url = f"{self.client.base_url}{resource}"
+        resp = self.client.post(url=url, params=query_params)
+        if resp.status_code != 204:
+            raise Exception(
+                f"POST request to {resp.url} failed with status_code: {resp.status_code}, Reason: {resp.reason} and Content: {resp.text}"
+            )
+        return resp   
 
 
 class UsersAPI:

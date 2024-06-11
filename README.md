@@ -73,6 +73,7 @@ The APIs we offer at the moment are:
 | ApiProductsAPI  | [here](/src/pytest_nhsd_apim/apigee_apis.py#L575)  |[Overview](https://apidocs.apigee.com/docs/api-products/1/overview)|
 | DebugSessionsAPI  | [here](/src/pytest_nhsd_apim/apigee_apis.py#L844)  |[Overview](https://apidocs.apigee.com/docs/debug-sessions/1/overview)|
 | AccessTokensAPI  | [here](/src/pytest_nhsd_apim/apigee_apis.py#L983)  |[Overview](https://apidocs.apigee.com/docs/oauth-20-access-tokens/1/overview)|
+| AppKeysAPI  | [here](/src/pytest_nhsd_apim/apigee_apis.py#L1243)  |[Overview](https://apidocs.apigee.com/docs/developer-app-keys/1/overview)|
 
 For a more detailed implementation of the available APIs please refer to the tests [here](/tests/test_apigee_apis.py).
 We will keep adding APIs with time, if you are looking for a particular APIs not listed above please feel free to open a pull request and send it to us.
