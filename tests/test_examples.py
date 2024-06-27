@@ -208,16 +208,18 @@ def test_patient_access_level_with_parametrization(
 # We are on our second generation of mock identity provider for
 # healthcare_worker access (CIS2). This allows you to log-in using a
 # username.
+# TODO: Might need to separate these usernames per aal level
 MOCK_CIS2_USERNAMES = ["656005750104", "656005750105", "656005750106", "656005750107"]
+AAL_LEVELS = ["aal1", "aal2", "aal3"]
 
 
 # You can make the parametrization less verbose by using a function to
 # construct each pytest.param!
-def cis2_aal3_mark(username: str):
+def cis2_mark(username: str, aal_level: str):
     return pytest.param(
         marks=pytest.mark.nhsd_apim_authorization(
             access="healthcare_worker",
-            level="aal3",
+            level=aal_level,
             login_form={"username": username},
         ),
     )
@@ -225,21 +227,32 @@ def cis2_aal3_mark(username: str):
 
 # It's getting pretty abstract now, but we're accessing the same
 # endpoint using access tokens granted to four different mock
-# users. Each is a valid mock user with aal3 credentials and so is
+# users. Each is a valid mock user with aal credentials and so is
 # granted a token we can use.
 @pytest.mark.parametrize(
-    (),
-    [cis2_aal3_mark(username) for username in MOCK_CIS2_USERNAMES],
+    "username, aal_level",
+    [cis2_mark(username, aal_level) for username in MOCK_CIS2_USERNAMES for aal_level in AAL_LEVELS],
+    indirect=True,
 )
 def test_healthcare_worker_user_restricted_combined_auth(
-    nhsd_apim_proxy_url, nhsd_apim_auth_headers
+    nhsd_apim_proxy_url, nhsd_apim_auth_headers, aal_level
 ):
-    resp0 = requests.get(nhsd_apim_proxy_url + "/test-auth/nhs-cis2/aal3")
+    url = f"{nhsd_apim_proxy_url}/test-auth/nhs-cis2/{aal_level}"
+    resp0 = requests.get(url)
     assert resp0.status_code == 401
-    resp1 = requests.get(
-        nhsd_apim_proxy_url + "/test-auth/nhs-cis2/aal3", headers=nhsd_apim_auth_headers
-    )
+    resp1 = requests.get(url, headers=nhsd_apim_auth_headers)
     assert resp1.status_code == 200
+
+
+def cis2_separate_auth_mark(aal_level: str):
+    return pytest.param(
+        marks=pytest.mark.nhsd_apim_authorization(
+            access="healthcare_worker",
+            level=aal_level,
+            login_form={"username": aal_level},
+            authentication="separate",
+        ),
+    )
 
 
 # Second generation auth also allows us to simulate separate authentication and
@@ -249,21 +262,17 @@ def test_healthcare_worker_user_restricted_combined_auth(
 # doesn't look too different. "combined" authentication is the default for this
 # library. To use separate authentication instead, add authentication="separate"
 # to the nhsd_apim_authorization mark.
-@pytest.mark.nhsd_apim_authorization(
-    {
-        "access": "healthcare_worker",
-        "level": "aal3",
-        "login_form": {"username": "aal3"},
-        "authentication": "separate",
-    }
+@pytest.mark.parametrize(
+    "aal_level", [cis2_separate_auth_mark(aal_level) for aal_level in AAL_LEVELS],
+    indirect=True
 )
 def test_healthcare_work_user_restricted_separate_auth(
-    nhsd_apim_proxy_url, nhsd_apim_auth_headers
+    nhsd_apim_proxy_url, nhsd_apim_auth_headers, aal_level
 ):
-    aal3_url = f"{nhsd_apim_proxy_url}/test-auth/nhs-cis2/aal3"
-    resp0 = requests.get(aal3_url)
+    url = f"{nhsd_apim_proxy_url}/test-auth/nhs-cis2/{aal_level}"
+    resp0 = requests.get(url)
     assert resp0.status_code == 401
-    resp1 = requests.get(aal3_url, headers=nhsd_apim_auth_headers)
+    resp1 = requests.get(url, headers=nhsd_apim_auth_headers)
     assert resp1.status_code == 200
 
 
