@@ -215,8 +215,9 @@ MOCK_CIS2_USERNAMES = {
 }
 
 
-def cis2_mark(username: str, level: str):
-    return pytest.param(
+# Create a list of pytest.param for each combination of username and level for combined auth
+combined_auth_params = [
+    pytest.param(
         username, level,
         marks=pytest.mark.nhsd_apim_authorization(
             access="healthcare_worker",
@@ -224,20 +225,12 @@ def cis2_mark(username: str, level: str):
             login_form={"username": username},
         ),
     )
-
-
-# Create a list of pytest.param for each combination of username and level
-params = [
-    cis2_mark(username, level)
     for level, usernames in MOCK_CIS2_USERNAMES.items()
     for username in usernames
 ]
 
 
-@pytest.mark.parametrize(
-    "username, level",
-    params,
-)
+@pytest.mark.parametrize("username, level", combined_auth_params)
 def test_healthcare_worker_user_restricted_combined_auth(
     nhsd_apim_proxy_url, nhsd_apim_auth_headers, username, level
 ):
@@ -256,7 +249,7 @@ def test_healthcare_worker_user_restricted_combined_auth(
 # library. To use separate authentication instead, add authentication="separate"
 # to the nhsd_apim_authorization mark.
 
-# Now create a combined list for separate authentication testing
+# Create a combined list for separate authentication testing
 separate_auth_params = [
     pytest.param(
         username, level,
@@ -272,10 +265,7 @@ separate_auth_params = [
 ]
 
 
-@pytest.mark.parametrize(
-    "username, level",
-    separate_auth_params,
-)
+@pytest.mark.parametrize("username, level", separate_auth_params)
 def test_healthcare_work_user_restricted_separate_auth(
     nhsd_apim_proxy_url, nhsd_apim_auth_headers, username, level
 ):
