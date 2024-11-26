@@ -100,10 +100,10 @@ class ApigeeProdCredentials(BaseSettings):
 
 class ApigeeNonProdCredentials(BaseSettings):
     auth_server: str = "login.apigee.com"
-    apigee_nhsd_nonprod_username: Optional[str]
-    apigee_nhsd_nonprod_password: Optional[str]
-    apigee_nhsd_nonprod_otp_key: Optional[str]
-    apigee_access_token: Optional[str]
+    apigee_nhsd_nonprod_username: Optional[str] = None
+    apigee_nhsd_nonprod_password: Optional[str] =  None
+    apigee_nhsd_nonprod_otp_key: Optional[str] = None
+    apigee_access_token: Optional[str] = None
     auth_method: Optional[str] = None
 
     @model_validator(mode='before')
