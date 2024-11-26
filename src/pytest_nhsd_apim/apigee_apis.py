@@ -41,26 +41,26 @@ class ApigeeProdCredentials(BaseSettings):
     apigee_access_token: Optional[str] = None
     auth_method: Optional[str] = None
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     def check_credentials_config(cls, values):
         print(values)
         """Checks for the right set of credentials"""
         if all(
             [
-                values.apigee_nhsd_prod_username,
-                values.apigee_nhsd_prod_password,
-                values.auth_server,
+                values.get("apigee_nhsd_prod_username"),
+                values.get("apigee_nhsd_prod_password"),
+                values.get("auth_server"),
             ]
         ):
-            values.auth_method = "saml"
+            values["auth_method"] = "saml"
             return values
         elif all(
-            [values.auth_server, values.apigee_nhsd_prod_passcode]
+            [values.get("auth_server"), values.get("apigee_nhsd_prod_passcode")]
         ):
-            values.auth_method = "saml"
+            values["auth_method"] = "saml"
             return values
-        elif values.apigee_access_token:
-            values.auth_method = "access_token"
+        elif values.get("apigee_access_token"):
+            values["auth_method"] = "access_token"
             return values
         else:
             raise ValueError(
@@ -111,24 +111,24 @@ class ApigeeNonProdCredentials(BaseSettings):
         """Checks for the right set of credentials"""
         if all(
             [
-                values.apigee_nhsd_nonprod_username,
-                values.apigee_nhsd_nonprod_password,
-                values.apigee_nhsd_nonprod_otp_key,
+                values.get("apigee_nhsd_nonprod_username"),
+                values.get("apigee_nhsd_nonprod_password"),
+                values.get("apigee_nhsd_nonprod_otp_key"),
             ]
         ):
-            values.auth_method = "saml"
+            values["auth_method"] = "saml"
             return values
         elif all(
             [
-                values.auth_server,
-                values.apigee_nhsd_nonprod_password,
-                values.apigee_nhsd_nonprod_username,
+                values.get("auth_server"),
+                values.get("apigee_nhsd_nonprod_password"),
+                values.get("apigee_nhsd_nonprod_username"),
             ]
         ):
-            values.auth_method = "saml"
+            values["auth_method"] = "saml"
             return values
-        elif values.apigee_access_token:
-            values.auth_method = "access_token"
+        elif values.get("apigee_access_token"):
+            values["auth_method"] = "access_token"
             return values
         else:
             raise ValueError("Please provide valid credentials or apigee_access_token")
