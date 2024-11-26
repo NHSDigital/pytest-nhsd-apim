@@ -48,7 +48,7 @@ class HealthcareWorkerAuthorization(UserRestrictedAuthorization):
     """
 
     access: Literal["healthcare_worker"]
-    level: Literal["aal1", "aal3"]
+    level: Literal["aal1", "aal2", "aal3"]
 
 
 
