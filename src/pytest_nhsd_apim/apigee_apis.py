@@ -5,7 +5,8 @@ import jwt
 import pyotp
 import requests
 from jwt import ExpiredSignatureError
-from pydantic import BaseSettings, root_validator
+from pydantic_settings import BaseSettings
+from pydantic import root_validator
 
 
 class ApigeeProdCredentials(BaseSettings):
