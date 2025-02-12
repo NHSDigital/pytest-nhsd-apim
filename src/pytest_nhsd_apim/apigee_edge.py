@@ -430,13 +430,13 @@ def _apigee_edge_session(nhsd_apim_config):
 
 
 @pytest.fixture(scope="session")
-def nhsd_apim_pre_create_app():
+@log_method
+def nhsd_apim_pre_create_app(nhsd_apim_config):
     """
     Hook fixture upon which to hang any methods you wish to call prior
     to creating the test app.
     """
-    yield
-
+    return { "APIGEE_APP_PRODUCT_ID" : nhsd_apim_config["APIGEE_APP_PRODUCT_ID"] }
 
 @pytest.fixture(scope="session")
 @log_method
@@ -471,6 +471,11 @@ def _create_test_app(
             "callbackUrl": "https://example.org/callback",
             "attributes": [{"name": "jwks-resource-url", "value": jwt_public_key_url}],
         }
+
+        test_app_product_id = nhsd_apim_pre_create_app["APIGEE_APP_PRODUCT_ID"]
+        if test_app_product_id:
+            app["attributes"].append({"name": "product-id", "value": test_app_product_id})
+        
         create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app)
         err_msg = f"Could not CREATE TestApp: `{app['name']}`.\tReason: {create_resp.text}"
         assert create_resp.status_code == 201, err_msg

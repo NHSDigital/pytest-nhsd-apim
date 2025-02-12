@@ -36,6 +36,10 @@ _PYTEST_CONFIG = {
         "help": "Apigee ID of application under test. Required for tests in production environments.",
         "default": "", # Must be falsy but not None.
     },
+    "--apigee-app-product-id": {
+        "help": "Product ID to use for test app.",
+        "default": "",
+    },    
     "--status-endpoint-api-key": {
         "help": "Used to authenticate calls to proxy's _status endpoint. Required for tests in production environments.",
         "default": "",  # Must be falsy but not None.
