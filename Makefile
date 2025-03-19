@@ -1,6 +1,7 @@
 .PHONY: build clean test install
 install-deps:
 	@pip install --upgrade pip
+	@pip install --upgrade setuptools[core]
 	@pip install poetry
 	@poetry install
 
