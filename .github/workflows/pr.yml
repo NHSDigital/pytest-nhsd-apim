@@ -9,7 +9,7 @@ jobs:
       APIGEE_OTP_KEY: ${{ secrets.APIGEE_OTP_KEY }}
     steps:
       - name: Checkout current branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: install
         run: |
@@ -45,7 +45,7 @@ jobs:
           path: pr
 
       - name: Checkout main
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: refs/heads/main
           path: main
