@@ -7,18 +7,18 @@ maybe move this file to its own library.
 """
 
 import uuid
-from time import time
-from typing import Literal
-
-import jwt
-from pydantic import BaseModel, HttpUrl, validator
 from abc import ABC, abstractmethod
+from time import time
 from typing import Literal
 from urllib.parse import parse_qs, urlparse
 
+import jwt
 import requests
 from lxml import html
+from pydantic import BaseModel, HttpUrl, validator, AfterValidator
+from typing_extensions import Annotated
 
+HttpUrlString = Annotated[HttpUrl, AfterValidator(lambda v: str(v))]
 
 #### Config models
 class KeycloakConfig(BaseModel):
@@ -55,7 +55,7 @@ class KeycloakConfig(BaseModel):
 class KeycloakUserConfig(KeycloakConfig):
     client_id: str
     client_secret: str
-    redirect_uri: HttpUrl = "https://example.org"
+    redirect_uri: HttpUrlString = "https://example.org"
     login_form: dict
 
 
@@ -82,8 +82,8 @@ class AuthorizationCodeConfig(BaseModel):
         "prod",
     ] = "internal-dev"
     org: Literal["nhsd-nonprod", "nhsd-prod"] = "nhsd-nonprod"
-    callback_url: HttpUrl
-    identity_service_base_url: HttpUrl = _identity_service_base_url(environment)
+    callback_url: HttpUrlString
+    identity_service_base_url: HttpUrlString = _identity_service_base_url(environment)
     client_id: str
     client_secret: str
     scope: Literal["nhs-login", "nhs-cis2"]
@@ -124,7 +124,7 @@ class ClientCredentialsConfig(BaseModel):
     client_id: str
     jwt_private_key: str
     jwt_kid: str
-    identity_service_base_url: HttpUrl = _identity_service_base_url(environment)
+    identity_service_base_url: HttpUrlString = _identity_service_base_url(environment)
 
     def encode_jwt(self):
         url = f"{self.identity_service_base_url}/token"
@@ -165,8 +165,8 @@ class NHSLoginConfig(BaseModel):
 
         super().__init__(**kwargs)
 
-    callback_url: HttpUrl = "https://nhsd-apim-testing-int-ns.herokuapp.com/nhslogin/callback"
-    nhs_login_base_url: HttpUrl
+    callback_url: HttpUrlString = "https://nhsd-apim-testing-int-ns.herokuapp.com/nhslogin/callback"
+    nhs_login_base_url: HttpUrlString
     client_id: str = "APIM-1"
     jwt_private_key: str
     jwt_kid: str
