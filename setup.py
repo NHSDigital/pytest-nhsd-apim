@@ -4,8 +4,8 @@ pytest-nhsd-apim setup install.
 
 import os
 
-import toml  # type: ignore[import]
-from setuptools import setup, find_packages  # type: ignore[import]
+import toml
+from setuptools import setup, find_packages
 
 
 def _read_file(file_name):
