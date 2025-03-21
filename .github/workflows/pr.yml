@@ -9,7 +9,12 @@ jobs:
       APIGEE_OTP_KEY: ${{ secrets.APIGEE_OTP_KEY }}
     steps:
       - name: Checkout current branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Install Python 3.8
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.8
 
       - name: install
         run: |
@@ -40,12 +45,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout current branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: pr
 
       - name: Checkout main
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: refs/heads/main
           path: main
@@ -58,7 +63,7 @@ jobs:
           echo ::set-output name=candidate::$(grep version pr/pyproject.toml | awk -F\" '{print $2}')
 
       - name: Install Python 3.8
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v5
         with:
           python-version: 3.8
 
