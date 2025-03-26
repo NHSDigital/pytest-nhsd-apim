@@ -83,7 +83,7 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     package_data={"": ["data/*"]},
-    python_requires=">=3.8",
+    python_requires=">=3.10",
     entry_points={"pytest11": ["nhsd_apim = pytest_nhsd_apim.pytest_nhsd_apim"]},
     classifiers=PYPROJECT_METADATA['tool']['poetry']['classifiers'],
     install_requires=get_package_dependencies(PYPROJECT_METADATA['tool']['poetry']['dependencies']),
