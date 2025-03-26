@@ -14,7 +14,7 @@ jobs:
       - name: Install Python 3.10
         uses: actions/setup-python@v5
         with:
-          python-version: 3.10
+          python-version: "3.10"
 
       - name: install
         run: |
@@ -65,7 +65,7 @@ jobs:
       - name: Install Python 3.10
         uses: actions/setup-python@v5
         with:
-          python-version: 3.10
+          python-version: "3.10"
 
       - name: Compare versions
         run: python pr/scripts/compare_version.py ${{ steps.versions.outputs.current }} ${{ steps.versions.outputs.candidate }}
