@@ -55,7 +55,7 @@ class KeycloakConfig(BaseModel):
 class KeycloakUserConfig(KeycloakConfig):
     client_id: str
     client_secret: str
-    redirect_uri: HttpUrlString = "https://example.org"
+    redirect_uri: HttpUrlString = "https://google.com"
     login_form: dict
 
 
