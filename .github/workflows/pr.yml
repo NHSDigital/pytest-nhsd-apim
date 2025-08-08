@@ -43,6 +43,7 @@ jobs:
       - name: Install Poetry
         run: |
           make install-deps
+          make build-install
           echo "export PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
             
       - name: test
