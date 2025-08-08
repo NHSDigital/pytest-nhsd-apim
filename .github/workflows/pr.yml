@@ -16,6 +16,11 @@ jobs:
         with:
           python-version: 3.8
 
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "export PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
+
       - name: install
         run: |
           sudo apt-get update
@@ -25,10 +30,12 @@ jobs:
           echo "Installing default candidate version"
           sudo apt-get install -y gnome-keyring
 
+      - name: Install Python dependencies
+        run: poetry install
+
       - name: get otp
         id: otp
         run: echo ::set-output name=key::$(poetry run python scripts/otp.py ${APIGEE_USERNAME} ${APIGEE_OTP_KEY})
-
 
       - name: Install get_token
         run: |
