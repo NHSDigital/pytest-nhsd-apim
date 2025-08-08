@@ -18,8 +18,12 @@ jobs:
 
       - name: install
         run: |
-          sudo apt install gnome-keyring
-          make install-deps build-install
+          sudo apt-get update
+          echo "Available versions of gnome-keyring:"
+          apt-cache policy gnome-keyring
+
+          echo "Installing default candidate version"
+          sudo apt-get install -y gnome-keyring
 
       - name: get otp
         id: otp
