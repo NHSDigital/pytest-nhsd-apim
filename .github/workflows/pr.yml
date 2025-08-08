@@ -42,12 +42,9 @@ jobs:
       
       - name: Install Poetry
         run: |
-          pip install poetry==1.7.1
+          make install-deps
           echo "export PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
-      
-      - name: Install Python dependencies
-        run: poetry install
-      
+            
       - name: test
         run: APIGEE_ACCESS_TOKEN=${{ steps.apigee.outputs.token }} make test
 
