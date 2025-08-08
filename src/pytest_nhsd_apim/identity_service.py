@@ -1,8 +1,8 @@
 """
 This is a self-contained wrapper for a bunch of authentication
-methods in APIM. NOT ONLY the identity service is taken into 
-account in here, you will also find authenticators for keycloak 
-and more... Feel free to keep adding authenticators here and 
+methods in APIM. NOT ONLY the identity service is taken into
+account in here, you will also find authenticators for keycloak
+and more... Feel free to keep adding authenticators here and
 maybe move this file to its own library.
 """
 
@@ -19,6 +19,7 @@ from pydantic import BaseModel, HttpUrl, validator, AfterValidator
 from typing_extensions import Annotated
 
 HttpUrlString = Annotated[HttpUrl, AfterValidator(lambda v: str(v))]
+
 
 #### Config models
 class KeycloakConfig(BaseModel):
@@ -55,7 +56,7 @@ class KeycloakConfig(BaseModel):
 class KeycloakUserConfig(KeycloakConfig):
     client_id: str
     client_secret: str
-    redirect_uri: HttpUrlString = "https://example.org"
+    redirect_uri: HttpUrlString = "https://google.com"
     login_form: dict
 
 
@@ -92,9 +93,7 @@ class AuthorizationCodeConfig(BaseModel):
     @validator("environment")
     def validate_environment(cls, environment):
         if environment == "prod":
-            raise ValueError(
-                f"We dont support testing in the production environment"
-            )
+            raise ValueError(f"We dont support testing in the production environment")
         return environment
 
 
@@ -136,9 +135,7 @@ class ClientCredentialsConfig(BaseModel):
             "exp": int(time()) + 300,  # 5 minutes in the future
         }
         additional_headers = {"kid": self.jwt_kid}
-        client_assertion = jwt.encode(
-            claims, self.jwt_private_key, algorithm="RS512", headers=additional_headers
-        )
+        client_assertion = jwt.encode(claims, self.jwt_private_key, algorithm="RS512", headers=additional_headers)
         return client_assertion
 
 
@@ -150,6 +147,7 @@ class TokenExchangeConfig(ClientCredentialsConfig):
 class KeycloakSignedJWTConfig:
     pass
 
+
 # currently only targets AOS environment
 class NHSLoginConfig(BaseModel):
     """Config needed to authenticate using NHS Login"""
@@ -159,7 +157,7 @@ class NHSLoginConfig(BaseModel):
         self.nhs_login_base_url = openid_config["issuer"]
 
         well_known_jwks: list = requests.get(openid_config["jwks_uri"]).json()
-        well_known_key = well_known_jwks['keys'].pop()
+        well_known_key = well_known_jwks["keys"].pop()
         self.jwt_kid = well_known_key["kid"]
         self.alg = well_known_key["alg"]
 
@@ -184,15 +182,13 @@ class NHSLoginConfig(BaseModel):
             "exp": int(time()) + 300,  # 5 minutes in the future
         }
         additional_headers = {"kid": self.jwt_kid}
-        client_assertion = jwt.encode(
-            claims, self.jwt_private_key, algorithm=self.alg, headers=additional_headers
-        )
+        client_assertion = jwt.encode(claims, self.jwt_private_key, algorithm=self.alg, headers=additional_headers)
         return client_assertion
-    
 
 
 class BananaAuthenticatorConfig:  # Placeholder
     pass
+
 
 ### Authenticators
 class Authenticator(ABC):
@@ -263,9 +259,7 @@ class AuthorizationCodeAuthenticator(Authenticator):
             },
         )
         if resp.status_code != 200:
-            raise RuntimeError(
-                f"{auth_url} request returned {resp.status_code}: {resp.text}"
-            )
+            raise RuntimeError(f"{auth_url} request returned {resp.status_code}: {resp.text}")
         return resp
 
     @staticmethod
@@ -299,9 +293,7 @@ class AuthorizationCodeAuthenticator(Authenticator):
         form_submission_data,
     ):
         form_submit_url = authorize_form.action or authorize_response.request.url
-        resp = session.request(
-            authorize_form.method, form_submit_url, data=form_submission_data
-        )
+        resp = session.request(authorize_form.method, form_submit_url, data=form_submission_data)
         # TODO: Investigate why when using the fixtures it returns 404 and when
         # using with external credentials returns 200
         # if resp.status_code != 200:
@@ -312,9 +304,7 @@ class AuthorizationCodeAuthenticator(Authenticator):
 
     @staticmethod
     def _get_auth_code_from_mock_auth(response_identity_service_login):
-        qs = urlparse(
-            response_identity_service_login.history[-1].headers["Location"]
-        ).query
+        qs = urlparse(response_identity_service_login.history[-1].headers["Location"]).query
         auth_code = parse_qs(qs)["code"]
         if isinstance(auth_code, list):
             # in case there's multiple, this was a bug at one stage
@@ -336,16 +326,12 @@ class AuthorizationCodeAuthenticator(Authenticator):
             self.config.scope,
         )
 
-        authorize_form = self._get_authorization_form(
-            authorize_response.content.decode()
-        )
+        authorize_form = self._get_authorization_form(authorize_response.content.decode())
         # 2. Parse the login page.  For keycloak this presents an
         # HTML form, which must be filled in with valid data.  The tester
         # can submits their login data with the `login_form` field.
 
-        form_submission_data = self._get_authorize_form_submission_data(
-            authorize_form, self.config.login_form
-        )
+        form_submission_data = self._get_authorize_form_submission_data(authorize_form, self.config.login_form)
 
         # form_submission_data["username"] = 656005750104
         #     # And here we inject a valid mock username for keycloak.
@@ -508,6 +494,7 @@ class NHSLoginSandpitAuthenticator(Authenticator):
 
 class NHSLoginAosAuthenticator(Authenticator):
     """Authenticates you against NHS-Login aos environment"""
+
     # This is only partially implemented. See below for usage:
     # https://nhsd-confluence.digital.nhs.uk/display/APM/KOP-085+Generating+NHS+login+ID+tokens
 

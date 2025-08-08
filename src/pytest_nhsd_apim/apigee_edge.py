@@ -5,6 +5,7 @@ This includes app setup/teardown, getting proxy info (proxy-under-test
 + identity-service of choice), getting products, registering them with
 the test app.
 """
+
 import functools
 import warnings
 from datetime import datetime
@@ -22,7 +23,7 @@ from .apigee_apis import (
     DebugSessionsAPI,
     AccessTokensAPI,
     ApiProductsAPI,
-    DeveloperAppsAPI
+    DeveloperAppsAPI,
 )
 
 APIGEE_BASE_URL = "https://api.enterprise.apigee.com/v1/"
@@ -48,12 +49,14 @@ def _apigee_app_base_url(nhsd_apim_config):
     url = APIGEE_BASE_URL + f"organizations/{org}/developers/{dev}/apps"
     return url
 
+
 @pytest.fixture(scope="session")
 @log_method
 def _apigee_app_base_url_no_dev(nhsd_apim_config):
     org = nhsd_apim_config["APIGEE_ORGANIZATION"]
     url = APIGEE_BASE_URL + f"organizations/{org}/apps"
     return url
+
 
 @functools.lru_cache(maxsize=None)
 @log_method
@@ -62,8 +65,8 @@ def _get_proxy_json(session, nhsd_apim_proxy_url):
     Query the apigee edge API to get data about the desired proxy, in particular its current deployment.
     """
     deployment_err_msg = (
-        "\n\tFailed to retrieve the proxy deployment data. " +
-        "Please check the validity of the APIGEE credentials and token as well as any headers."
+        "\n\tFailed to retrieve the proxy deployment data. "
+        + "Please check the validity of the APIGEE credentials and token as well as any headers."
     )
     deployment_resp = session.get(f"{nhsd_apim_proxy_url}/deployments")
     assert deployment_resp.status_code == 200, deployment_err_msg.format(deployment_resp.content)
@@ -283,7 +286,9 @@ _TEST_APP = None
 
 @pytest.fixture(scope="session")
 @log_method
-def nhsd_apim_test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_url, _apigee_app_base_url_no_dev, _test_app_id) -> Callable:
+def nhsd_apim_test_app(
+    _create_test_app, _apigee_edge_session, _apigee_app_base_url, _apigee_app_base_url_no_dev, _test_app_id
+) -> Callable:
     """
     A Callable that gets you the current state of the test app.
     """
@@ -314,7 +319,7 @@ def nhsd_apim_test_app(_create_test_app, _apigee_edge_session, _apigee_app_base_
             return _TEST_APP
         if _test_app_id:
             resp = _apigee_edge_session.get(_apigee_app_base_url_no_dev + "/" + _test_app_id)
-        else: 
+        else:
             resp = _apigee_edge_session.get(_apigee_app_base_url + "/" + _create_test_app["name"])
         _TEST_APP = resp.json()
         return _TEST_APP
@@ -468,7 +473,7 @@ def _create_test_app(
     else:
         app = {
             "name": f"apim-auto-{uuid4()}",
-            "callbackUrl": "https://example.org/callback",
+            "callbackUrl": "https://google.com/callback",
             "attributes": [{"name": "jwks-resource-url", "value": jwt_public_key_url}],
         }
         create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app)
@@ -512,7 +517,7 @@ def _create_function_scoped_test_app(
     else:
         app = {
             "name": f"apim-auto-{uuid4()}",
-            "callbackUrl": "https://example.org/callback",
+            "callbackUrl": "https://google.com/callback",
             "attributes": [{"name": "jwks-resource-url", "value": jwt_public_key_url}],
         }
         create_resp = _apigee_edge_session.post(_apigee_app_base_url, json=app)
@@ -538,6 +543,7 @@ def _test_app_callback_url(_create_test_app):
 def _test_app_id(nhsd_apim_config):
     return nhsd_apim_config["APIGEE_APP_ID"]
 
+
 @pytest.fixture()
 @log_method
 def trace(_apigee_proxy):
@@ -545,14 +551,15 @@ def trace(_apigee_proxy):
     Authenticated wrapper around the DebugSessionsAPI class
     """
     config = ApigeeNonProdCredentials()
-    client =  ApigeeClient(config=config)
+    client = ApigeeClient(config=config)
     debug = DebugSessionsAPI(
         client=client,
         env_name=_apigee_proxy["environment"],
         api_name=_apigee_proxy["name"],
-        revision_number=_apigee_proxy["revision"]
+        revision_number=_apigee_proxy["revision"],
     )
     return debug
+
 
 @pytest.fixture(scope="session")
 @log_method
@@ -575,6 +582,7 @@ def products_api():
     client = ApigeeClient(config=config)
     return ApiProductsAPI(client=client)
 
+
 @pytest.fixture(scope="session")
 @log_method
 def developer_apps_api():
@@ -584,6 +592,7 @@ def developer_apps_api():
     config = ApigeeNonProdCredentials()
     client = ApigeeClient(config=config)
     return DeveloperAppsAPI(client=client)
+
 
 @pytest.fixture(scope="session")
 @log_method

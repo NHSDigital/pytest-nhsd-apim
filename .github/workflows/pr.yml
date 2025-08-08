@@ -18,13 +18,16 @@ jobs:
 
       - name: install
         run: |
-          sudo apt install gnome-keyring
-          make install-deps build-install
+          sudo apt-get update
+          echo "Available versions of gnome-keyring:"
+          apt-cache policy gnome-keyring
+
+          echo "Installing default candidate version"
+          sudo apt-get install -y gnome-keyring
 
       - name: get otp
         id: otp
         run: echo ::set-output name=key::$(poetry run python scripts/otp.py ${APIGEE_USERNAME} ${APIGEE_OTP_KEY})
-
 
       - name: Install get_token
         run: |
@@ -36,7 +39,13 @@ jobs:
         run: |
           echo ::add-mask $(SSO_LOGIN_URL=https://login.apigee.com ./get_token -u ${APIGEE_USERNAME}:${APIGEE_PASSWORD} -m ${{ steps.otp.outputs.key }})
           echo ::set-output name=token::$(SSO_LOGIN_URL=https://login.apigee.com ./get_token -u ${APIGEE_USERNAME}:${APIGEE_PASSWORD} -m ${{ steps.otp.outputs.key }})
-
+      
+      - name: Install Poetry
+        run: |
+          make install-deps
+          make build-install
+          echo "export PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
+            
       - name: test
         run: APIGEE_ACCESS_TOKEN=${{ steps.apigee.outputs.token }} make test
 
