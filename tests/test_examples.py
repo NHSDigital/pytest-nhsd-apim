@@ -3,6 +3,7 @@ Example tests that show all the features of pytest_nhsd_apim.
 
 These tests actually work!
 """
+
 import json
 import pytest
 import requests
@@ -43,9 +44,7 @@ def test_status_endpoint(nhsd_apim_proxy_url, status_endpoint_auth_headers):
     # {"apikey": "thesecretvalue"} Use it to access your proxy's
     # _status endpoint.
 
-    resp = requests.get(
-        nhsd_apim_proxy_url + "/_status", headers=status_endpoint_auth_headers
-    )
+    resp = requests.get(nhsd_apim_proxy_url + "/_status", headers=status_endpoint_auth_headers)
     status_json = resp.json()
     assert resp.status_code == 200
     assert status_json["status"] == "pass"
@@ -63,9 +62,7 @@ def test_app_level0_access(nhsd_apim_proxy_url, nhsd_apim_auth_headers):
     resp = requests.get(nhsd_apim_proxy_url + "/test-auth/app/level0")
     assert resp.status_code == 401  # unauthorized
 
-    resp = requests.get(
-        nhsd_apim_proxy_url + "/test-auth/app/level0", headers=nhsd_apim_auth_headers
-    )
+    resp = requests.get(nhsd_apim_proxy_url + "/test-auth/app/level0", headers=nhsd_apim_auth_headers)
     assert resp.status_code == 200  # authorized
 
 
@@ -81,9 +78,7 @@ def test_app_level3_access(nhsd_apim_proxy_url, nhsd_apim_auth_headers):
     resp = requests.get(nhsd_apim_proxy_url + "/test-auth/app/level3")
     assert resp.status_code == 401  # unauthorized
 
-    resp = requests.get(
-        nhsd_apim_proxy_url + "/test-auth/app/level3", headers=nhsd_apim_auth_headers
-    )
+    resp = requests.get(nhsd_apim_proxy_url + "/test-auth/app/level3", headers=nhsd_apim_auth_headers)
     assert resp.status_code == 200  # authorized
 
 
@@ -103,17 +98,13 @@ def test_app_level3_access_repeatedly(count, nhsd_apim_auth_headers):
             return "rd"
         return "th"
 
-    print(
-        f"This is the {count}{th(count)} test using the same credentials - {nhsd_apim_auth_headers}"
-    )
+    print(f"This is the {count}{th(count)} test using the same credentials - {nhsd_apim_auth_headers}")
 
 
 # If for any reason you want to override the caching
 # the force_new_token flag can be added
 @pytest.mark.parametrize(("count"), [1, 2, 3])
-@pytest.mark.nhsd_apim_authorization(
-    {"access": "application", "level": "level3", "force_new_token": True}
-)
+@pytest.mark.nhsd_apim_authorization({"access": "application", "level": "level3", "force_new_token": True})
 def test_app_level3_with_force_new_token(count, nhsd_apim_auth_headers):
     def th(i):
         if i == 1:
@@ -124,9 +115,7 @@ def test_app_level3_with_force_new_token(count, nhsd_apim_auth_headers):
             return "rd"
         return "th"
 
-    print(
-        f"This is the {count}{th(count)} test using different credentials - {nhsd_apim_auth_headers}"
-    )
+    print(f"This is the {count}{th(count)} test using different credentials - {nhsd_apim_auth_headers}")
 
 
 # You can include marks in a pytest parametrization to reduce
@@ -218,7 +207,8 @@ MOCK_CIS2_USERNAMES = {
 # Create a list of pytest.param for each combination of username and level for combined auth
 combined_auth_params = [
     pytest.param(
-        username, level,
+        username,
+        level,
         marks=pytest.mark.nhsd_apim_authorization(
             access="healthcare_worker",
             level=level,
@@ -231,9 +221,7 @@ combined_auth_params = [
 
 
 @pytest.mark.parametrize("username, level", combined_auth_params)
-def test_healthcare_worker_user_restricted_combined_auth(
-    nhsd_apim_proxy_url, nhsd_apim_auth_headers, username, level
-):
+def test_healthcare_worker_user_restricted_combined_auth(nhsd_apim_proxy_url, nhsd_apim_auth_headers, username, level):
     url = f"{nhsd_apim_proxy_url}/test-auth/nhs-cis2/{level}"
     resp0 = requests.get(url)
     assert resp0.status_code == 401
@@ -252,7 +240,8 @@ def test_healthcare_worker_user_restricted_combined_auth(
 # Create a combined list for separate authentication testing
 separate_auth_params = [
     pytest.param(
-        username, level,
+        username,
+        level,
         marks=pytest.mark.nhsd_apim_authorization(
             access="healthcare_worker",
             level=level,
@@ -266,9 +255,7 @@ separate_auth_params = [
 
 
 @pytest.mark.parametrize("username, level", separate_auth_params)
-def test_healthcare_work_user_restricted_separate_auth(
-    nhsd_apim_proxy_url, nhsd_apim_auth_headers, username, level
-):
+def test_healthcare_work_user_restricted_separate_auth(nhsd_apim_proxy_url, nhsd_apim_auth_headers, username, level):
     aal_url = f"{nhsd_apim_proxy_url}/test-auth/nhs-cis2/{level}"
     resp0 = requests.get(aal_url)
     assert resp0.status_code == 401
@@ -288,9 +275,7 @@ def test_healthcare_work_user_restricted_separate_auth(
         "authentication": "separate",
     }
 )
-def test_patient_user_restricted_separate_auth(
-    nhsd_apim_proxy_url, nhsd_apim_auth_headers
-):
+def test_patient_user_restricted_separate_auth(nhsd_apim_proxy_url, nhsd_apim_auth_headers):
     P9_url = f"{nhsd_apim_proxy_url}/test-auth/nhs-login/P9"
     resp0 = requests.get(P9_url)
     assert resp0.status_code == 401
@@ -302,25 +287,19 @@ def test_patient_user_restricted_separate_auth(
 # nhsd_apim_authorization marker.  This allows you to parameterize
 # unauthenicated access tests in the same way as authenticated API calls.
 @pytest.mark.nhsd_apim_authorization()
-def test_no_authorization_explicitly_marked(
-    nhsd_apim_proxy_url, nhsd_apim_auth_headers
-):
+def test_no_authorization_explicitly_marked(nhsd_apim_proxy_url, nhsd_apim_auth_headers):
     assert nhsd_apim_auth_headers == {}
 
 
 # You can also do it without marking, though this raises a warning.
-def test_no_authorization_with_not_explicitly_marked(
-    nhsd_apim_proxy_url, nhsd_apim_auth_headers
-):
+def test_no_authorization_with_not_explicitly_marked(nhsd_apim_proxy_url, nhsd_apim_auth_headers):
     assert nhsd_apim_auth_headers == {}
 
 
 # You can also use the authenticators directly in case you want to run the tests
 # using a specific app already available in Apigee, leaving all the marker magic
 # behind this is how you can implement the diferent authenticators
-def test_client_credentials_authenticator(
-    _test_app_credentials, _jwt_keys, apigee_environment
-):
+def test_client_credentials_authenticator(_test_app_credentials, _jwt_keys, apigee_environment):
     # 1. Set your app config
     config = ClientCredentialsConfig(
         environment=apigee_environment,
@@ -352,7 +331,7 @@ def test_authorization_code_authenticator(_test_app_credentials, apigee_environm
     config = AuthorizationCodeConfig(
         environment=apigee_environment,
         identity_service_base_url=f"https://{apigee_environment}.api.service.nhs.uk/oauth2-mock",
-        callback_url="https://example.org/callback",
+        callback_url="https://google.com/callback",
         client_id=_test_app_credentials["consumerKey"],
         client_secret=_test_app_credentials["consumerSecret"],
         scope="nhs-cis2",
@@ -439,12 +418,8 @@ def test_trace(nhsd_apim_proxy_url, nhsd_apim_auth_headers, trace):
 
     trace_ids = trace.get_transaction_data(session_name=session_name)
 
-    trace_data = trace.get_transaction_data_by_id(
-        session_name=session_name, transaction_id=trace_ids[0]
-    )
-    status_code_from_trace = trace.get_apigee_variable_from_trace(
-        name="message.status.code", data=trace_data
-    )
+    trace_data = trace.get_transaction_data_by_id(session_name=session_name, transaction_id=trace_ids[0])
+    status_code_from_trace = trace.get_apigee_variable_from_trace(name="message.status.code", data=trace_data)
 
     trace.delete_debugsession_by_name(session_name)
 
