@@ -16,11 +16,6 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Install Poetry
-        run: |
-          pip install poetry==1.7.1
-          echo "export PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
-
       - name: install
         run: |
           sudo apt-get update
@@ -29,9 +24,6 @@ jobs:
 
           echo "Installing default candidate version"
           sudo apt-get install -y gnome-keyring
-
-      - name: Install Python dependencies
-        run: poetry install
 
       - name: get otp
         id: otp
@@ -47,7 +39,15 @@ jobs:
         run: |
           echo ::add-mask $(SSO_LOGIN_URL=https://login.apigee.com ./get_token -u ${APIGEE_USERNAME}:${APIGEE_PASSWORD} -m ${{ steps.otp.outputs.key }})
           echo ::set-output name=token::$(SSO_LOGIN_URL=https://login.apigee.com ./get_token -u ${APIGEE_USERNAME}:${APIGEE_PASSWORD} -m ${{ steps.otp.outputs.key }})
-
+      
+      - name: Install Poetry
+        run: |
+          pip install poetry==1.7.1
+          echo "export PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
+      
+      - name: Install Python dependencies
+        run: poetry install
+      
       - name: test
         run: APIGEE_ACCESS_TOKEN=${{ steps.apigee.outputs.token }} make test
 
