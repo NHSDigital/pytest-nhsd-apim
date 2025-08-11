@@ -18,7 +18,7 @@ from lxml import html
 from pydantic import BaseModel, HttpUrl, validator, AfterValidator
 from typing_extensions import Annotated
 
-HttpUrlString = Annotated[HttpUrl, AfterValidator(lambda v: str(v))]
+HttpUrlString = Annotated[HttpUrl, AfterValidator(lambda v: str(v).rstrip("/"))]
 
 
 #### Config models
