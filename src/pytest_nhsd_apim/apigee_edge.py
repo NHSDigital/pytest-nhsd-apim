@@ -327,8 +327,8 @@ def nhsd_apim_test_app(
     return app
 
 
-@log_method
 @pytest.fixture(scope="session")
+@log_method
 def nhsd_apim_unsubscribe_test_app_from_all_products(
     nhsd_apim_test_app, _apigee_edge_session, _apigee_app_base_url, _test_app_id
 ):
