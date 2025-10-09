@@ -24,6 +24,9 @@ class _TokenCache:
 
         if not self.is_time_in_milliseconds(token_data["issued_at"]):
             token_data["issued_at"] = int(token_data["issued_at"]) * 1000
+
+        if not self.is_expiry_in_milliseconds(token_data["expires_in"]):
+            token_data["expires_in"] = int(token_data["expires_in"]) * 1000
         
         self._cache[key] = token_data
 
@@ -42,9 +45,7 @@ class _TokenCache:
         # issued_at is epoch_time in milliseconds
         # but expires_in is in seconds
         # => need factor of 1000 in this sum.
-        if not self.is_expiry_in_milliseconds(old_token_data["expires_in"]):
-            old_token_data["expires_in"] = int(old_token_data["expires_in"]) * 1000
-
+        
         expiry_time = int(old_token_data["issued_at"]) + int(old_token_data["expires_in"])
         if now_ish > expiry_time:
             self._cache.pop(key)
