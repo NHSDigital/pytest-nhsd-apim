@@ -53,10 +53,10 @@ class _TokenCache:
         return old_token_data
     
     def is_time_in_milliseconds(self, time_value):
-        return time_value > 10**11 #Current time in secs not go over 11 digits
+        return int(time_value) > 10**11 #Current time in secs not go over 11 digits
     
     def is_expiry_in_milliseconds(self, expiry_value):
-        return expiry_value > 86400 #Assuming seconds not go higher than 24hrs
+        return int(expiry_value) > 86400 #Assuming seconds not go higher than 24hrs
         
 
 
