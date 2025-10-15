@@ -15,14 +15,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check for changes in src/pytest_nhsd_apim
+      
+      - name: Check for changes in src/
         run: |
           git fetch origin main
-          CHANGED=$(git diff --name-only origin/main...HEAD | grep '^src/pytest_nhsd_apim/')
+          CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep '^src/')
           if [ -z "$CHANGED" ]; then
-            echo "No changes in src/pytest_nhsd_apim — skipping version check."
+            echo "No changes in src/ — skipping job."
             exit 0
           fi
+
 
       - name: Install Python 3.13
         uses: actions/setup-python@v5
