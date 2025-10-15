@@ -1,8 +1,6 @@
 name: PR validation
 on: 
-  pull_request:
-    paths:
-      - 'src/pytest_nhsd_apim/**'
+  pull_request
 jobs:
   integration-tests:
     runs-on: ubuntu-latest
@@ -11,6 +9,15 @@ jobs:
       APIGEE_PASSWORD: ${{ secrets.APIGEE_PASSWORD }}
       APIGEE_OTP_KEY: ${{ secrets.APIGEE_OTP_KEY }}
     steps:
+      - name: Check for changes in src/pytest_nhsd_apim
+        run: |
+          git fetch origin main
+          CHANGED=$(git diff --name-only origin/main...HEAD | grep '^src/pytest_nhsd_apim/')
+          if [ -z "$CHANGED" ]; then
+            echo "No changes in src/pytest_nhsd_apim — skipping version check."
+            exit 0
+          fi
+
       - name: Checkout current branch
         uses: actions/checkout@v4
 
@@ -55,6 +62,15 @@ jobs:
   check-version-bump:
     runs-on: ubuntu-latest
     steps:
+      - name: Check for changes in src/pytest_nhsd_apim
+        run: |
+          git fetch origin main
+          CHANGED=$(git diff --name-only origin/main...HEAD | grep '^src/pytest_nhsd_apim/')
+          if [ -z "$CHANGED" ]; then
+            echo "No changes in src/pytest_nhsd_apim — skipping version check."
+            exit 0
+          fi
+          
       - name: Checkout current branch
         uses: actions/checkout@v4
         with:
