@@ -7,14 +7,16 @@ on:
         description: "Run SBOM check"
         required: true
         type: choice
-        options: [ yes, no ]
+        options:
+          - yes
+          - no
 
 env:
-  SYFT_VERSION: "1.27.1"   # or remove this line to install the latest Syft
+  SYFT_VERSION: "1.27.1"
   TF_VERSION: "1.12.2"
 
 jobs:
-  sbom:
+  deploy:
     name: Software Bill of Materials
     runs-on: ubuntu-latest
     permissions:
@@ -22,103 +24,72 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5        
+
       - name: Setup Python 3.13
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 
-      # --- Install Syft (official method) ---
-      - name: Install Syft
-        run: |
-          mkdir -p "$HOME/.local/bin"
-          if [ -n "${SYFT_VERSION}" ]; then
-            curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
-              | sh -s -- -b "$HOME/.local/bin" "v${SYFT_VERSION}"
-          else
-            curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
-              | sh -s -- -b "$HOME/.local/bin"
-          fi
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          syft version
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
 
-      # --- Create repo & tool SBOMs with Syft (CycloneDX) ---
-      - name: Create SBOM (CycloneDX)
+      - uses: terraform-linters/setup-tflint@ae78205cfffec9e8d93fd2b3115c7e9d3166d4b6
+        name: Setup TFLint
+
+      - name: Set architecture variable
+        id: os-arch
+        run: |
+          case "${{ runner.arch }}" in
+            X64) ARCH="amd64" ;;
+            ARM64) ARCH="arm64" ;;
+          esac
+          echo "arch=${ARCH}" >> $GITHUB_OUTPUT
+
+      - name: Download and setup Syft
+        run: |
+          DOWNLOAD_URL="https://github.com/anchore/syft/releases/download/v${{ env.SYFT_VERSION }}/syft_${{ env.SYFT_VERSION }}_linux_${{ steps.os-arch.outputs.arch }}.tar.gz"
+          echo "Downloading: ${DOWNLOAD_URL}"
+
+          curl -L -o syft.tar.gz "${DOWNLOAD_URL}"
+          tar -xzf syft.tar.gz
+          chmod +x syft
+
+          # Add to PATH for subsequent steps
+          echo "$(pwd)" >> $GITHUB_PATH       
+
+      - name: Create SBOM
         run: bash scripts/create-sbom.sh terraform python tflint
 
-      # --- Python environment SBOM (CycloneDX) ---
-      - name: Install CycloneDX Python tooling
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install cyclonedx-bom
-
-      - name: Create Python Environment SBOM (CycloneDX)
-        run: |
-          cyclonedx-py environment -o python-env.cdx.json
-
-      # --- Install CycloneDX CLI for merging ---
-      - name: Install CycloneDX CLI
-        run: |
-          curl -L -o cyclonedx \
-            https://github.com/CycloneDX/cyclonedx-cli/releases/latest/download/cyclonedx-linux-x64
-          chmod +x cyclonedx
-          echo "$(pwd)" >> "$GITHUB_PATH"
-          ./cyclonedx --version
-
-      # --- Merge all CycloneDX SBOMs into one ---
-      - name: Merge CycloneDX SBOMs
-        run: |
-          inputs="sbom.cdx.json python-env.cdx.json"
-          for f in sbom.*.cdx.json; do [[ -f "$f" ]] && inputs="$inputs $f"; done
-          cyclonedx merge --input-files $inputs --output-file sbom.cdx.json
-
-      # --- (Optional) Enrich with explicit Python runtime properties ---
-      - name: Enrich SBOM with Python runtime version (no heredoc)
-        shell: bash
-        run: |
-          PY_VER=$(python -c "import platform; print(platform.python_version())")
-          PY_IMPL=$(python -c "import sys; print(sys.implementation.name)")
-          python - <<'PY' "$PY_VER" "$PY_IMPL"
-          import json, sys
-          fn="sbom.cdx.json"
-          with open(fn, "r", encoding="utf-8") as f:
-              data = json.load(f)
-          props = data.setdefault("metadata", {}).setdefault("properties", [])
-          props.append({"name": "cdx:python:runtime:version", "value": sys.argv[1]})
-          props.append({"name": "cdx:python:runtime:implementation", "value": sys.argv[2]})
-          with open(fn, "w", encoding="utf-8") as f:
-              json.dump(data, f)
-          PY
-
-      # --- CSV exports (your scripts now support SPDX/CycloneDX) ---
       - name: Convert SBOM JSON to CSV
         run: |
-          python -m pip install --upgrade pip tabulate
-          REPO_NAME=$(basename "$GITHUB_REPOSITORY")
-          python .github/scripts/sbom_json_to_csv.py sbom.cdx.json SBOM_${REPO_NAME}.csv
+          pip install --upgrade pip
+          pip install tabulate  
+          REPO_NAME=$(basename $GITHUB_REPOSITORY)
+          python .github/scripts/sbom_json_to_csv.py sbom.json SBOM_${REPO_NAME}.csv
 
-      - name: Upload SBOM CSV
+      - name: Upload SBOM CSV as artifact
         uses: actions/upload-artifact@v4
         with:
           name: sbom-csv
           path: SBOM_${{ github.event.repository.name }}.csv
 
-      # --- Install Grype & scan the CycloneDX SBOM ---
       - name: Install Grype
         run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh \
-            | sh -s -- -b /usr/local/bin
-          grype version
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 
       - name: Scan SBOM for Vulnerabilities (JSON)
         run: |
-          grype sbom:sbom.cdx.json -o json > grype-report.json
+          grype sbom:sbom.json -o json > grype-report.json
+          
+      
 
       - name: Convert Grype JSON to CSV
         run: |
-          python -m pip install --upgrade pip
-          REPO_NAME=$(basename "$GITHUB_REPOSITORY")
+          pip install --upgrade pip
+          REPO_NAME=$(basename $GITHUB_REPOSITORY)
           python .github/scripts/grype_json_to_csv.py grype-report.json grype-report-${REPO_NAME}.csv
+
 
       - name: Upload Vulnerability Report
         uses: actions/upload-artifact@v4
@@ -128,9 +99,9 @@ jobs:
 
       - name: Generate Package Inventory CSV
         run: |
-          python -m pip install --upgrade pip
-          REPO_NAME=$(basename "$GITHUB_REPOSITORY")
-          python .github/scripts/sbom_packages_to_csv.py sbom.cdx.json $REPO_NAME
+          pip install --upgrade pip
+          REPO_NAME=$(basename $GITHUB_REPOSITORY)
+          python .github/scripts/sbom_packages_to_csv.py sbom.json $REPO_NAME
 
       - name: Upload Package Inventory CSV
         uses: actions/upload-artifact@v4
