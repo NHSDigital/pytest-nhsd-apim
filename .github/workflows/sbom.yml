@@ -73,22 +73,20 @@ jobs:
           cyclonedx merge --input-files $inputs --output-file sbom.cdx.json
 
       # --- (Optional) Enrich with explicit Python runtime properties ---
-      - name: Enrich SBOM with Python runtime version (no heredoc)
-        shell: bash
+      - name: Enrich SBOM with Python version
         run: |
           PY_VER=$(python -c "import platform; print(platform.python_version())")
           PY_IMPL=$(python -c "import sys; print(sys.implementation.name)")
           python - <<'PY' "$PY_VER" "$PY_IMPL"
-          import json, sys
-          fn="sbom.cdx.json"
-          with open(fn, "r", encoding="utf-8") as f:
-              data = json.load(f)
-          props = data.setdefault("metadata", {}).setdefault("properties", [])
-          props.append({"name": "cdx:python:runtime:version", "value": sys.argv[1]})
-          props.append({"name": "cdx:python:runtime:implementation", "value": sys.argv[2]})
-          with open(fn, "w", encoding="utf-8") as f:
-              json.dump(data, f)
-          PY
+            import json, sys
+            fn="sbom.cdx.json"
+            data=json.load(open(fn,"r",encoding="utf-8"))
+            props=data.setdefault("metadata",{}).setdefault("properties",[])
+            props.append({"name":"cdx:python:runtime:version","value":sys.argv[1]})
+            props.append({"name":"cdx:python:runtime:implementation","value":sys.argv[2]})
+            json.dump(data, open(fn,"w",encoding="utf-8"))
+            print("Stamped Python runtime:", sys.argv[1], sys.argv[2])
+            PY
 
       # --- CSV exports (your scripts now support SPDX/CycloneDX) ---
       - name: Convert SBOM JSON to CSV
