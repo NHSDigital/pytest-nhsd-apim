@@ -20,14 +20,7 @@ class _TokenCache:
             # only present on app-restricted tokens.  we can inject
             # this ourselves. Assume 5 seconds ago, probably was more
             # recently
-            token_data["issued_at"] = (int(time()) * 1000) - 5000
-
-        if not self.is_time_in_milliseconds(token_data["issued_at"]):
-            token_data["issued_at"] = int(token_data["issued_at"]) * 1000
-
-        if not self.is_expiry_in_milliseconds(token_data["expires_in"]):
-            token_data["expires_in"] = int(token_data["expires_in"]) * 1000
-        
+            token_data["issued_at"] = time() - 5000
         self._cache[key] = token_data
 
     @log_method
@@ -40,24 +33,18 @@ class _TokenCache:
 
         old_token_data = self._cache[key]
         grace_period_seconds = 5
-        now_ish = (int(time()) + grace_period_seconds) * 1000
+        now_ish = int(time()) + grace_period_seconds
 
         # issued_at is epoch_time in milliseconds
         # but expires_in is in seconds
         # => need factor of 1000 in this sum.
-        
-        expiry_time = int(old_token_data["issued_at"]) + int(old_token_data["expires_in"])
+        expiry_time = int(old_token_data["issued_at"]) + 1000 * int(
+            old_token_data["expires_in"]
+        )
         if now_ish > expiry_time:
             self._cache.pop(key)
             return None
         return old_token_data
-    
-    def is_time_in_milliseconds(self, time_value):
-        return int(time_value) > 10**11 #Current time in secs not go over 11 digits
-    
-    def is_expiry_in_milliseconds(self, expiry_value):
-        return int(expiry_value) > 86400 #Assuming seconds not go higher than 24hrs
-        
 
 
 _CACHES = {}
