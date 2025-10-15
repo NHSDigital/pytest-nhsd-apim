@@ -255,7 +255,11 @@ def main() -> None:
     # Write a pretty table for quick viewing
     table_txt = "sbom_table.txt"
     with open(table_txt, "w", encoding="utf-8") as tf:
-        tf.write(tabulate(rows, headers=columns, tablefmt="grid"))
+        if rows:
+            table_data = [[r.get(col, "") for col in columns] for r in rows]
+            tf.write(tabulate(table_data, headers=columns, tablefmt="grid"))
+        else:
+            tf.write("No components found.\n")
     print(f"[sbom_json_to_csv] Wrote table: {table_txt}")
 
 
