@@ -2,7 +2,24 @@ name: PR validation
 on: 
   pull_request
 jobs:
+  check_changes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+
+      - name: Check the Src folder for changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            src:
+              - 'src/pytest_nhsd_apim/**'
+
+
   integration-tests:
+    needs: check_changes
+    if: needs.check_changes.filters.src == 'true'
     runs-on: ubuntu-latest
     env:
       APIGEE_USERNAME: ${{ secrets.APIGEE_USERNAME }}
@@ -14,17 +31,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      
-      - name: Check for changes in src/
-        run: |
-          git fetch origin main
-          CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD | grep '^src/')
-          if [ -z "$CHANGED" ]; then
-            echo "No changes in src/ — skipping job."
-            exit 0
-          fi
-
 
       - name: Install Python 3.13
         uses: actions/setup-python@v5
@@ -65,6 +71,8 @@ jobs:
         run: APIGEE_ACCESS_TOKEN=${{ steps.apigee.outputs.token }} make test
 
   check-version-bump:
+    needs: check_changes
+    if: needs.check_changes.filters.src == 'true'
     runs-on: ubuntu-latest
     steps:
 
@@ -78,15 +86,6 @@ jobs:
         with:
           ref: refs/heads/main
           path: main
-
-      - name: Check for changes in src/pytest_nhsd_apim
-        run: |
-          git fetch origin main
-          CHANGED=$(git diff --name-only origin/main...HEAD | grep '^src/pytest_nhsd_apim/')
-          if [ -z "$CHANGED" ]; then
-            echo "No changes in src/pytest_nhsd_apim — skipping version check."
-            exit 0
-          fi
 
       - name: Extract current version
         id: versions
