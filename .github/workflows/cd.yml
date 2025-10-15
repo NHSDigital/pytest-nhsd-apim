@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'src/pytest_nhsd_apim/**'
 jobs:
   publish:
     runs-on: ubuntu-latest
