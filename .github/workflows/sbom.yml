@@ -45,6 +45,55 @@ jobs:
             ARM64) ARCH="arm64" ;;
           esac
           echo "arch=${ARCH}" >> $GITHUB_OUTPUT
+        
+      - name: Create SBOM (CycloneDX)
+        run: bash scripts/create-sbom.sh terraform python tflint
+    
+      - name: Install CycloneDX Python tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install cyclonedx-bom
+
+      - name: Create Python Environment SBOM (CycloneDX)
+        run: |
+          cyclonedx-py environment -o python-env.cdx.json
+      
+      - name: Install CycloneDX CLI
+        run: |
+          # Download a release for your OS/arch; example shows Linux
+          # See CycloneDX CLI docs/releases
+          curl -L -o cyclonedx \
+            https://github.com/CycloneDX/cyclonedx-cli/releases/latest/download/cyclonedx-linux-x64
+          chmod +x cyclonedx
+          echo "$(pwd)" >> $GITHUB_PATH
+
+      - name: Merge CycloneDX SBOMs
+        run: |
+          # Build input list (repo, python env, optional tools)
+          inputs="sbom.cdx.json python-env.cdx.json"
+          for f in sbom.*.cdx.json; do
+            [[ -f "$f" ]] && inputs="$inputs $f"
+          done
+
+          # Merge SBOMs -> final CycloneDX
+          cyclonedx merge \
+            --input-files $inputs \
+            --output-file sbom.cdx.json
+
+      - name: Enrich SBOM with Python runtime version (CycloneDX properties)
+        run: |
+          PY_VER=$(python -c "import platform; print(platform.python_version())")
+          PY_IMPL=$(python -c "import sys; print(sys.implementation.name)")
+          python - <<'PY'
+          import json, sys
+          fn = "sbom.cdx.json"
+          data = json.load(open(fn, "r", encoding="utf-8"))
+          props = data.setdefault("metadata", {}).setdefault("properties", [])
+          props.append({"name": "cdx:python:runtime:version", "value": sys.argv[1]})
+          props.append({"name": "cdx:python:runtime:implementation", "value": sys.argv[2]})
+          json.dump(data, open(fn, "w", encoding="utf-8"))
+          PY
+            $PY_VER $PY_IMPL
 
       - name: Download and setup Syft
         run: |
@@ -57,9 +106,6 @@ jobs:
 
           # Add to PATH for subsequent steps
           echo "$(pwd)" >> $GITHUB_PATH       
-
-      - name: Create SBOM
-        run: bash scripts/create-sbom.sh terraform python tflint
 
       - name: Convert SBOM JSON to CSV
         run: |
@@ -80,10 +126,8 @@ jobs:
 
       - name: Scan SBOM for Vulnerabilities (JSON)
         run: |
-          grype sbom:sbom.json -o json > grype-report.json
+          grype sbom:sbom.cdx.json -o json > grype-report.json
           
-      
-
       - name: Convert Grype JSON to CSV
         run: |
           pip install --upgrade pip
