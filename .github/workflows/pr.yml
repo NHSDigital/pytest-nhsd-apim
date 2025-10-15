@@ -71,10 +71,10 @@ jobs:
           echo ::set-output name=current::$(grep version main/pyproject.toml | awk -F\" '{print $2}')
           echo ::set-output name=candidate::$(grep version pr/pyproject.toml | awk -F\" '{print $2}')
 
-      - name: Install Python 3.8
+      - name: Install Python 3.13
         uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: 3.13
 
       - name: Compare versions
         run: python pr/scripts/compare_version.py ${{ steps.versions.outputs.current }} ${{ steps.versions.outputs.candidate }}
