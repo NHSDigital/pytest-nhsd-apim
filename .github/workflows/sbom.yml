@@ -95,17 +95,16 @@ jobs:
           PY
             $PY_VER $PY_IMPL
 
-      - name: Download and setup Syft
+      - name: Install Syft
+        env:
+          SYFT_VERSION: ${{ env.SYFT_VERSION }} 
         run: |
-          DOWNLOAD_URL="https://github.com/anchore/syft/releases/download/v${{ env.SYFT_VERSION }}/syft_${{ env.SYFT_VERSION }}_linux_${{ steps.os-arch.outputs.arch }}.tar.gz"
-          echo "Downloading: ${DOWNLOAD_URL}"
-
-          curl -L -o syft.tar.gz "${DOWNLOAD_URL}"
-          tar -xzf syft.tar.gz
-          chmod +x syft
-
-          # Add to PATH for subsequent steps
-          echo "$(pwd)" >> $GITHUB_PATH       
+          # install to a user-writable path and add it to PATH
+          mkdir -p "$HOME/.local/bin"
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
+            | sh -s -- -b "$HOME/.local/bin" "v${SYFT_VERSION}"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"              
+          syft version     
 
       - name: Convert SBOM JSON to CSV
         run: |
