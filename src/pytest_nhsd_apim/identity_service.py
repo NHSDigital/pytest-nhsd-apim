@@ -56,6 +56,7 @@ class KeycloakConfig(BaseModel):
 class KeycloakUserConfig(KeycloakConfig):
     client_id: str
     client_secret: str
+    scope: str = "openid"
     redirect_uri: HttpUrlString = "https://google.com"
     login_form: dict
 
@@ -408,7 +409,7 @@ class KeycloakUserAuthenticator(Authenticator):
             params={
                 "response_type": "code",
                 "client_id": self.config.client_id,
-                "scope": "openid",
+                "scope": self.config.scope,
                 "redirect_uri": self.config.redirect_uri,
             },
         )
