@@ -5,7 +5,7 @@ jobs:
   check_changes:
     runs-on: ubuntu-latest
     outputs: 
-      src_changed = ${{ steps.filter.outputs.src }}
+      src_changed: ${{ steps.filter.outputs.src }}
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v4
