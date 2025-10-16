@@ -5,6 +5,8 @@ on:
       - main
     paths:
       - 'src/pytest_nhsd_apim/**'
+      - 'pyproject.toml'
+      - 'setup.py'
 jobs:
   publish:
     runs-on: ubuntu-latest
