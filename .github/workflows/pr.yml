@@ -76,7 +76,7 @@ jobs:
 
   check-version-bump:
     needs: check_changes
-    if: needs.check_changes.filters.src == 'true'
+    if: needs.check_changes.outputs.src_changed == 'true'
     runs-on: ubuntu-latest
     steps:
 
