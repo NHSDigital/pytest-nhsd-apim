@@ -1,15 +1,36 @@
 name: PR validation
-on: pull_request
+on: 
+  pull_request
 jobs:
+  check_changes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+
+      - name: Check the Src folder for changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            src:
+              - 'src/pytest_nhsd_apim/**'
+
+
   integration-tests:
+    needs: check_changes
+    if: needs.check_changes.filters.src == 'true'
     runs-on: ubuntu-latest
     env:
       APIGEE_USERNAME: ${{ secrets.APIGEE_USERNAME }}
       APIGEE_PASSWORD: ${{ secrets.APIGEE_PASSWORD }}
       APIGEE_OTP_KEY: ${{ secrets.APIGEE_OTP_KEY }}
     steps:
+
       - name: Checkout current branch
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Python 3.13
         uses: actions/setup-python@v5
@@ -49,10 +70,12 @@ jobs:
       - name: test
         run: APIGEE_ACCESS_TOKEN=${{ steps.apigee.outputs.token }} make test
 
-
   check-version-bump:
+    needs: check_changes
+    if: needs.check_changes.filters.src == 'true'
     runs-on: ubuntu-latest
     steps:
+
       - name: Checkout current branch
         uses: actions/checkout@v4
         with:
@@ -64,17 +87,16 @@ jobs:
           ref: refs/heads/main
           path: main
 
-
       - name: Extract current version
         id: versions
         run: |
           echo ::set-output name=current::$(grep version main/pyproject.toml | awk -F\" '{print $2}')
           echo ::set-output name=candidate::$(grep version pr/pyproject.toml | awk -F\" '{print $2}')
 
-      - name: Install Python 3.8
+      - name: Install Python 3.13
         uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: 3.13
 
       - name: Compare versions
         run: python pr/scripts/compare_version.py ${{ steps.versions.outputs.current }} ${{ steps.versions.outputs.candidate }}
