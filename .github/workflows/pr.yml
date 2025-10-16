@@ -4,6 +4,8 @@ on:
 jobs:
   check_changes:
     runs-on: ubuntu-latest
+    outputs: 
+      src_changed = ${{ steps.filter.outputs.src }}
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v4
@@ -21,7 +23,7 @@ jobs:
 
   integration-tests:
     needs: check_changes
-    if: needs.check_changes.filters.src == 'true'
+    if: needs.check_changes.outputs.src_changed == 'true'
     runs-on: ubuntu-latest
     env:
       APIGEE_USERNAME: ${{ secrets.APIGEE_USERNAME }}
