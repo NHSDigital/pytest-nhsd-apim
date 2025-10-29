@@ -24,7 +24,7 @@ typing-extensions = "^4.12.2"
 pydantic = "^2.9.2"
 wheel = ">=0.37.1,<0.39.0"
 pydantic-settings = "^2.2.1"
-setuptools = "^78.0.0"
+setuptools = "^78.1.1"
 
 # [tool.poetry.group.dev.dependencies]
 
