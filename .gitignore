@@ -9,3 +9,4 @@ dist
 **/jwtRS512.key
 .vscode
 .idea
+.envrc
