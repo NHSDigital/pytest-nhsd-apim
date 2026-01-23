@@ -5,7 +5,8 @@ install-deps:
 	@poetry install
 
 build:
-	@poetry run python setup.py sdist bdist_wheel
+#	@poetry run python setup.py sdist bdist_wheel
+	@poetry build
 
 build-install: # also installs it locally
 	@poetry run python setup.py install
