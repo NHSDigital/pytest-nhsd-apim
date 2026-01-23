@@ -1,19 +1,19 @@
 [tool.poetry]
 name = "pytest-nhsd-apim"
-version = "6.0.5"
+version = "6.0.6"
 description = "Pytest plugin accessing NHSDigital's APIM proxies"
 authors = ["Adrian Ciobanita <adrian.ciobanita1@nhs.net>", "Alex Carrie <alexander.carrie1@nhs.net>", "Lucas Fantini <lucas.fantini@nhs.net>"]
 maintainers = ["Alex Carrie <alexander.carrie1@nhs.net>", "Alex Hawdon <alex.hawdon1@nhs.net"]
 readme = "README.md"
 repository = "https://github.com/NHSDigital/pytest-nhsd-apim"
-classifiers = ["Framework :: Pytest"]
 license = "MIT"
+classifiers = ["Framework :: Pytest"]
 
 [tool.poetry.dependencies]
+python = ">=3.10"
 Authlib = "^1.6.6"
 cryptography = ">44.0.1"
 lxml = "^5.3.1"
-python = ">=3.10"
 pycryptodome = "^3.20.0"
 PyJWT = "^2.8.0"
 pyotp = "^2.9.0"
@@ -24,10 +24,16 @@ typing-extensions = "^4.12.2"
 pydantic = "^2.9.2"
 wheel = "~0.46.2"
 pydantic-settings = "^2.2.1"
-setuptools = "^80.0.1" 
+setuptools = "^80.0.1"
 urllib3 = "^2.6.3"
 
-# [tool.poetry.group.dev.dependencies]
+[project]
+name = "pytest-nhsd-apim"
+version = "6.0.6"
+requires-python = ">=3.10"
+
+[project.entry-points."pytest11"]
+nhsd_apim = "pytest_nhsd_apim.pytest_nhsd_apim"
 
 [tool.pytest.ini_options]
 log_cli = true
