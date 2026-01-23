@@ -3,9 +3,12 @@ pytest-nhsd-apim setup install.
 """
 
 import os
-
+import tomllib
+from pathlib import Path
 import toml
 from setuptools import setup, find_packages
+import re
+from html import unescape
 
 
 def _read_file(file_name):
@@ -58,10 +61,79 @@ def get_package_dependencies(toml_dependencies):
     :return: data needed by setuptools to pass into `install_requires`
     :rtype: list
     """
-    install_requires = ["{}=={}".format(pkg_name, pkg_version[1:])
-                        for pkg_name, pkg_version in toml_dependencies.items() if pkg_name != 'python']
+    # install_requires = ["{}=={}".format(pkg_name, pkg_version[1:])
+    #                     for pkg_name, pkg_version in toml_dependencies.items() if pkg_name != 'python']
+    # print(install_requires)
+    # return install_requires
 
-    return install_requires
+    data = tomllib.loads(Path("pyproject.toml").read_text("utf-8"))
+    deps = (data.get("tool", {})
+                .get("poetry", {})
+                .get("dependencies", {}) or {})
+    return convert_tool_poetry_to_pep508(deps)
+
+
+def poetry_spec_to_pep508(name: str, spec: str) -> str:
+    """
+    Convert Poetry-style version specifiers (^, ~, *, bare versions)
+    into valid PEP 508 requirement strings suitable for setup.py install_requires.
+    """
+
+    spec = unescape(spec).strip()
+
+    # Already PEP 440 comparators? -> passthrough
+    if re.match(r"^(>=|<=|>|<|==|!=)", spec):
+        return f"{name} ({spec})"
+
+    # Caret (^) operator
+    if spec.startswith("^"):
+        base = spec[1:]
+        parts = [int(p) for p in base.split(".")]
+        while len(parts) < 3:
+            parts.append(0)
+        major, minor, patch = parts[:3]
+        lower = f"{major}.{minor}.{patch}"
+        upper = f"{major+1}.0.0"
+        return f"{name} (>= {lower}, < {upper})"
+
+    # Tilde (~) operator
+    if spec.startswith("~"):
+        base = spec[1:]
+        parts = [int(p) for p in base.split(".")]
+        while len(parts) < 2:
+            parts.append(0)
+        major, minor = parts[:2]
+        patch = parts[2] if len(parts) > 2 else 0
+        lower = f"{major}.{minor}.{patch}"
+        upper = f"{major}.{minor+1}.0"
+        return f"{name} (>= {lower}, < {upper})"
+
+    # Wildcards: e.g. "1.*"
+    if spec.endswith(".*") and spec[:-2].isdigit():
+        major = int(spec[:-2])
+        return f"{name} (>= {major}.0.0, < {major+1}.0.0)"
+
+    # Bare version -> exact pin
+    if re.match(r"^\d+(\.\d+){0,2}$", spec):
+        return f"{name} (== {spec})"
+
+    # Default fallback: wrap raw spec
+    return f"{name} ({spec})"
+
+
+def convert_tool_poetry_to_pep508(toml_deps: dict) -> list[str]:
+    """
+    Converts `[tool.poetry.dependencies]` dict into a PEP 508 list for setup.py install_requires.
+    Skips Python itself.
+    """
+    out = []
+    for pkg, raw_spec in toml_deps.items():
+        if pkg.lower() == "python":
+            continue
+        spec = raw_spec if isinstance(raw_spec, str) else str(raw_spec)
+        out.append(poetry_spec_to_pep508(pkg, spec))
+    return out
+
 
 
 PYPROJECT_METADATA = get_pyproject_toml_metadata()
@@ -83,7 +155,7 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     package_data={"": ["data/*"]},
-    python_requires=">=3.8",
+    python_requires=">=3.13",
     entry_points={"pytest11": ["nhsd_apim = pytest_nhsd_apim.pytest_nhsd_apim"]},
     classifiers=PYPROJECT_METADATA['tool']['poetry']['classifiers'],
     install_requires=get_package_dependencies(PYPROJECT_METADATA['tool']['poetry']['dependencies']),
