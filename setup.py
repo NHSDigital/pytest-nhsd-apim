@@ -50,8 +50,8 @@ def get_name_and_email(name_and_email_pair):
     """
     return name_and_email_pair[0].split(' <')[:1][0], name_and_email_pair[0].split(" <")[1:][0][:-1]
 
-def poetry_to_pep508(name: str, spec: str) -> str:
-    spec = unescape(spec).strip()  # decode &gt; &lt; etc.
+def convert_poetry_version(name, spec):
+    spec = unescape(spec).strip()
     if spec.startswith("^"):
         base = spec[1:]
         parts = [int(p) for p in base.split(".")]
@@ -87,7 +87,7 @@ def get_package_dependencies(toml_dependencies):
     for pkg, spec in toml_dependencies.items():
         if pkg.lower() == "python":
             continue
-        out.append(poetry_to_pep508(pkg, str(spec)))
+        out.append(convert_poetry_version(pkg, str(spec)))
     return out
 
 
