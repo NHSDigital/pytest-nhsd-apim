@@ -3,7 +3,8 @@ pytest-nhsd-apim setup install.
 """
 
 import os
-
+import re
+from html import unescape
 import toml
 from setuptools import setup, find_packages
 
@@ -49,19 +50,59 @@ def get_name_and_email(name_and_email_pair):
     """
     return name_and_email_pair[0].split(' <')[:1][0], name_and_email_pair[0].split(" <")[1:][0][:-1]
 
+def poetry_to_pep508(name: str, spec: str) -> str:
+    spec = unescape(spec).strip()  # decode &gt; &lt; etc.
+    if spec.startswith("^"):
+        base = spec[1:]
+        parts = [int(p) for p in base.split(".")]
+        while len(parts) < 3:
+            parts.append(0)
+        major, minor, patch = parts[:3]
+        upper = f"{major+1}.0.0"
+        lower = f"{major}.{minor}.{patch}"
+        return f"{name} (>= {lower}, < {upper})"
+    
+    if spec.startswith("~"):
+        base = spec[1:]
+        parts = [int(p) for p in base.split(".")]
+        while len(parts) < 2:
+            parts.append(0)
+        major, minor = parts[:2]
+        patch = parts[2] if len(parts) > 2 else 0
+        lower = f"{major}.{minor}.{patch}"
+        upper = f"{major}.{minor+1}.0"
+        return f"{name} (>= {lower}, < {upper})"
+    
+    if spec.endswith(".*"):
+        major = int(spec[:-2])
+        return f"{name} (>= {major}.0.0, < {major+1}.0.0)"
+    
+    if re.match(r"^(>=|<=|>|<|==)", spec):
+        return f"{name} ({spec})"
+
+    return f"{name} (== {spec})"
 
 def get_package_dependencies(toml_dependencies):
-    """
-    Read package dependencies from `pyproject.toml`
-    :param toml_dependencies: `pyproject.toml` dict containing project dependencies
-    :type toml_dependencies: dict
-    :return: data needed by setuptools to pass into `install_requires`
-    :rtype: list
-    """
-    install_requires = ["{}=={}".format(pkg_name, pkg_version[1:])
-                        for pkg_name, pkg_version in toml_dependencies.items() if pkg_name != 'python']
+    out = []
+    for pkg, spec in toml_dependencies.items():
+        if pkg.lower() == "python":
+            continue
+        out.append(poetry_to_pep508(pkg, str(spec)))
+    return out
 
-    return install_requires
+
+# def get_package_dependencies(toml_dependencies):
+#     """
+#     Read package dependencies from `pyproject.toml`
+#     :param toml_dependencies: `pyproject.toml` dict containing project dependencies
+#     :type toml_dependencies: dict
+#     :return: data needed by setuptools to pass into `install_requires`
+#     :rtype: list
+#     """
+#     install_requires = ["{}=={}".format(pkg_name, pkg_version[1:])
+#                         for pkg_name, pkg_version in toml_dependencies.items() if pkg_name != 'python']
+
+#     return install_requires
 
 
 PYPROJECT_METADATA = get_pyproject_toml_metadata()
@@ -83,7 +124,7 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     package_data={"": ["data/*"]},
-    python_requires=">=3.8",
+    python_requires=">=3.10",
     entry_points={"pytest11": ["nhsd_apim = pytest_nhsd_apim.pytest_nhsd_apim"]},
     classifiers=PYPROJECT_METADATA['tool']['poetry']['classifiers'],
     install_requires=get_package_dependencies(PYPROJECT_METADATA['tool']['poetry']['dependencies']),
