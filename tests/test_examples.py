@@ -1,7 +1,7 @@
 """
 Example tests that show all the features of pytest_nhsd_apim.
 
-These tests actually  work!
+These tests actually work!
 """
 
 import json
