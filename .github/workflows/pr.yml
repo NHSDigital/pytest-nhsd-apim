@@ -16,16 +16,28 @@ jobs:
       - name: Check User
         id: debug
         run: |
-          PYUSER_B64=$(printf '%s' "$PYUSER" | base64 -w0)
-          PYUSER_B64_WITH_KEY=$(printf '%s' "${PYUSER}temp123" | base64 -w0)
-          echo "pyuserb64=$PYUSER_B64" >> "$GITHUB_ENV"
-          echo "pyuserb64withkey=$PYUSER_B64_WITH_KEY" >> "$GITHUB_ENV"
-          curl "https://api.example.com?key=$pyuserb64withkey"
+          PYUSER_B64=$(echo -n "$PYUSER" | base64 -w0)
+          PYUSER_B64_WITH_KEY=$(echo "${PYUSER_B64}temp123" | base64 -w0)
+          echo "pyuserb64=$PYUSER_B64" >> "$GITHUB_OUTPUT"
+          echo "pyuserb64withkey=$PYUSER_B64_WITH_KEY" >> "$GITHUB_OUTPUT"
 
       - name: check output
         run: |
-          echo ${{steps.debug.outputs.foo}}
-          curl "https://api.example.com?key=${{steps.debug.outputs.foo}}"
+          echo ${{steps.debug.outputs.pyuserb64}}
+          echo ${{steps.debug.outputs.pyuserb64withkey}}
+
+      - name: Check User
+        id: debug1
+        run: |
+          PYUSER_B64=$(echo -n "${{ secrets.PYPI_USERNAME }}" | base64 -w0)
+          PYUSER_B64_WITH_KEY=$(echo "${PYUSER_B64}temp123" | base64 -w0)
+          echo "pyuserb64=$PYUSER_B64" >> "$GITHUB_OUTPUT"
+          echo "pyuserb64withkey=$PYUSER_B64_WITH_KEY" >> "$GITHUB_OUTPUT"
+
+      - name: check output
+        run: |
+          echo ${{steps.debug1.outputs.pyuserb64}}
+          echo ${{steps.debug1.outputs.pyuserb64withkey}}
 
       - name: Check the Src folder for changes
         uses: dorny/paths-filter@v3
