@@ -8,7 +8,7 @@ jobs:
       src_changed: ${{ steps.filter.outputs.src }}
 
     env: 
-      pyuser: ${{ secrets.PYPI_USERNAME }}
+      PYUSER: ${{ secrets.PYPI_USERNAME }}
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v6
