@@ -11,8 +11,14 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Check User
+        id: debug
         run: |
-          echo "${{secrets.PYPI_USERNAME}} | base64"
+          ENC=$(echo "${{ secrets.PYPI_USERNAME }}" | base64)
+          echo "foo=$ENC" >> "$GITHUB_OUTPUT"
+
+
+      - name: check output
+        run: echo ${{steps.debug.outputs.foo}}
 
       - name: Check the Src folder for changes
         uses: dorny/paths-filter@v3
